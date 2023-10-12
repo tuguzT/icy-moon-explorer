@@ -2,6 +2,9 @@
 *
 !*/
 
+# Do not ignore project introduction file.
+!/README.md
+
 # Do not ignore git files in the root of the repo.
 !/.git*
 
