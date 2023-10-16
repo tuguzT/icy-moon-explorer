@@ -48,6 +48,11 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	SlideFriction = 2.0f;
 	SlideHalfHeight = 30.0f;
 	bWantsToSlide = false;
+
+	DashImpulse = 1200.0f;
+	DashDuration = 0.5f;
+	DashCooldown = 1.0f;
+	bWantsToDash = false;
 }
 
 FORCEINLINE AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
@@ -90,10 +95,8 @@ void UJuicyCharacterMovementComponent::Slide()
 
 void UJuicyCharacterMovementComponent::UnSlide()
 {
-	FHitResult OutHit;
 	const FVector Forward = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
-	const FQuat RestoredRotation = FRotationMatrix::MakeFromXZ(Forward, FVector::UpVector).ToQuat();
-	SafeMoveUpdatedComponent(FVector::ZeroVector, RestoredRotation, true, OutHit);
+	ResetCharacterRotation(Forward, true);
 
 	bWantsToSlide = false;
 	Super::SetMovementMode(MOVE_Walking);
@@ -108,8 +111,52 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
-	const bool HasInput = !Acceleration.GetSafeNormal2D().IsNearlyZero();
-	return HasInput && IsMovingOnGround();
+	return HasInput() && IsMovingOnGround();
+}
+
+void UJuicyCharacterMovementComponent::Dash()
+{
+	bWantsToDash = true;
+
+	if (CanDashInCurrentState())
+	{
+		CurrentDashDirection = (HasInput() ? Acceleration : UpdatedComponent->GetForwardVector()).GetSafeNormal2D();
+		ResetCharacterRotation(CurrentDashDirection, false);
+		Super::SetMovementMode(MOVE_Flying);
+
+		FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+		TimerManager.SetTimer(TimerHandleForDashDuration, this,
+		                      &UJuicyCharacterMovementComponent::OnEndDash,
+		                      DashDuration);
+		GetJuicyCharacterOwner()->OnStartDash();
+	}
+}
+
+bool UJuicyCharacterMovementComponent::IsDashing() const
+{
+	const FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	return TimerManager.IsTimerActive(TimerHandleForDashDuration);
+}
+
+bool UJuicyCharacterMovementComponent::IsDashingCooldown() const
+{
+	const FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	return TimerManager.IsTimerActive(TimerHandleForDashCooldown);
+}
+
+bool UJuicyCharacterMovementComponent::CanDashInCurrentState() const
+{
+	const bool IsAllowedMode = MovementMode == MOVE_Walking
+		|| MovementMode == MOVE_NavWalking
+		|| MovementMode == MOVE_Falling
+		|| MovementMode == MOVE_Flying;
+	const bool IsNotDashing = !IsDashing();
+	const bool IsNotDashingCooldown = !IsDashingCooldown();
+
+	return UpdatedComponent
+		&& IsAllowedMode
+		&& IsNotDashing
+		&& IsNotDashingCooldown;
 }
 
 FNetworkPredictionData_Client* UJuicyCharacterMovementComponent::GetPredictionData_Client() const
@@ -226,19 +273,28 @@ void UJuicyCharacterMovementComponent::OnMovementUpdated(const float DeltaSecond
 
 void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
 {
-	// Proxies get replicated sliding state.
-	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	// Check for a change in sliding state.
+	// Players toggle sliding by changing bWantsToSlide.
+	if (const bool bIsSliding = IsSliding();
+		bIsSliding && (!bWantsToSlide || !CanSlideInCurrentState()))
 	{
-		// Check for a change in sliding state. Players toggle sliding by changing bWantsToSlide.
-		if (const bool bIsSliding = IsSliding();
-			bIsSliding && (!bWantsToSlide || !CanSlideInCurrentState()))
-		{
-			UnSlide();
-		}
-		else if (!bIsSliding && bWantsToSlide && CanSlideInCurrentState())
-		{
-			Slide();
-		}
+		UnSlide();
+	}
+	else if (!bIsSliding && bWantsToSlide && CanSlideInCurrentState())
+	{
+		Slide();
+	}
+
+	// Check for a change in dashing state.
+	// Players toggle sliding by changing bWantsToDash.
+	if (const bool bIsDashing = IsDashing();
+		bIsDashing)
+	{
+		Velocity = CurrentDashDirection * DashImpulse;
+	}
+	else if (!bIsDashing && bWantsToDash && CanDashInCurrentState())
+	{
+		Dash();
 	}
 
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -246,7 +302,21 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 
 bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 {
-	return Super::CanAttemptJump() && !IsSliding();
+	return Super::CanAttemptJump()
+		&& !IsSliding()
+		&& !IsDashing();
+}
+
+bool UJuicyCharacterMovementComponent::HasInput() const
+{
+	return !Acceleration.GetSafeNormal2D().IsNearlyZero();
+}
+
+void UJuicyCharacterMovementComponent::ResetCharacterRotation(const FVector& Forward, const bool bSweep)
+{
+	FHitResult OutHit;
+	const FQuat RestoredRotation = FRotationMatrix::MakeFromXZ(Forward, FVector::UpVector).ToQuat();
+	SafeMoveUpdatedComponent(FVector::ZeroVector, RestoredRotation, bSweep, OutHit);
 }
 
 bool UJuicyCharacterMovementComponent::GetSlideSurface(FHitResult& OutHit) const
@@ -275,4 +345,25 @@ void UJuicyCharacterMovementComponent::RestoreHalfHeightAfterSliding()
 
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultHalfHeight);
 	CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector::UpVector * SlideHalfHeight);
+}
+
+void UJuicyCharacterMovementComponent::OnEndDash()
+{
+	Super::SetMovementMode(MOVE_Falling);
+
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForDashDuration);
+	GetJuicyCharacterOwner()->OnEndDash();
+
+	TimerManager.SetTimer(TimerHandleForDashCooldown, this,
+	                      &UJuicyCharacterMovementComponent::OnEndDashCooldown,
+	                      DashCooldown);
+	GetJuicyCharacterOwner()->OnStartDashCooldown();
+}
+
+void UJuicyCharacterMovementComponent::OnEndDashCooldown()
+{
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForDashCooldown);
+	GetJuicyCharacterOwner()->OnEndDashCooldown();
 }

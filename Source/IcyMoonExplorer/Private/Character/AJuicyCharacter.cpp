@@ -24,7 +24,7 @@ FORCEINLINE UJuicyCharacterMovementComponent* AJuicyCharacter::GetJuicyCharacter
 
 void AJuicyCharacter::Slide()
 {
-	if (JuicyCharacterMovement && CanSlide())
+	if (CanSlide())
 	{
 		JuicyCharacterMovement->bWantsToSlide = true;
 	}
@@ -53,4 +53,46 @@ void AJuicyCharacter::OnStartSlide()
 void AJuicyCharacter::OnEndSlide()
 {
 	K2_OnEndSlide();
+}
+
+void AJuicyCharacter::Dash()
+{
+	if (CanDash())
+	{
+		JuicyCharacterMovement->bWantsToDash = true;
+	}
+}
+
+void AJuicyCharacter::StopDashing()
+{
+	if (JuicyCharacterMovement)
+	{
+		JuicyCharacterMovement->bWantsToDash = false;
+	}
+}
+
+bool AJuicyCharacter::CanDash() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->CanDashInCurrentState();
+}
+
+void AJuicyCharacter::OnStartDash()
+{
+	K2_OnStartDash();
+}
+
+void AJuicyCharacter::OnEndDash()
+{
+	K2_OnEndDash();
+}
+
+void AJuicyCharacter::OnStartDashCooldown()
+{
+	K2_OnStartDashCooldown();
+}
+
+void AJuicyCharacter::OnEndDashCooldown()
+{
+	K2_OnEndDashCooldown();
 }

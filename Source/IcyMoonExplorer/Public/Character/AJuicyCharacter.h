@@ -35,6 +35,35 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndSlide", ScriptName="OnEndSlide"))
 	void K2_OnEndSlide();
 
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void Dash();
+
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void StopDashing();
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual bool CanDash() const;
+
+	virtual void OnStartDash();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartDash", ScriptName="OnStartDash"))
+	void K2_OnStartDash();
+
+	virtual void OnEndDash();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndDash", ScriptName="OnEndDash"))
+	void K2_OnEndDash();
+
+	virtual void OnStartDashCooldown();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartDashCooldown", ScriptName="OnStartDashCooldown"))
+	void K2_OnStartDashCooldown();
+
+	virtual void OnEndDashCooldown();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndDashCooldown", ScriptName="OnEndDashCooldown"))
+	void K2_OnEndDashCooldown();
+
 private:
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UJuicyCharacterMovementComponent> JuicyCharacterMovement;

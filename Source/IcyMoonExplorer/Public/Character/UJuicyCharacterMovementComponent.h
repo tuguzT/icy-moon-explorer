@@ -24,8 +24,23 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
 	float SlideHalfHeight;
 
+	UPROPERTY(Category="Character Movement: Dashing", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float DashImpulse;
+
+	UPROPERTY(Category="Character Movement: Dashing", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	float DashDuration;
+
+	UPROPERTY(Category="Character Movement: Dashing", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	float DashCooldown;
+
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
+
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bWantsToDash : 1;
 
 	explicit UJuicyCharacterMovementComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -42,6 +57,11 @@ public:
 	virtual bool IsSliding() const;
 	virtual bool CanSlideInCurrentState() const;
 
+	virtual void Dash();
+	virtual bool IsDashing() const;
+	virtual bool IsDashingCooldown() const;
+	virtual bool CanDashInCurrentState() const;
+
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual bool IsMovingOnGround() const override;
 
@@ -57,8 +77,17 @@ protected:
 	virtual bool CanAttemptJump() const override;
 
 private:
-	bool GetSlideSurface(FHitResult& OutHit) const;
+	FTimerHandle TimerHandleForDashDuration;
+	FTimerHandle TimerHandleForDashCooldown;
+	FVector CurrentDashDirection;
 
+	bool HasInput() const;
+	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
+
+	bool GetSlideSurface(FHitResult& OutHit) const;
 	void ChangeHalfHeightBeforeSliding();
 	void RestoreHalfHeightAfterSliding();
+
+	void OnEndDash();
+	void OnEndDashCooldown();
 };
