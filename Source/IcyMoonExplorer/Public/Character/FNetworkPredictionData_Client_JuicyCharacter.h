@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-class ICYMOONEXPLORER_API FNetworkPredictionData_Client_JuicyCharacter final
+// ReSharper disable once CppClassCanBeFinal
+class ICYMOONEXPLORER_API FNetworkPredictionData_Client_JuicyCharacter
 	: public FNetworkPredictionData_Client_Character
 {
 	using Super = FNetworkPredictionData_Client_Character;

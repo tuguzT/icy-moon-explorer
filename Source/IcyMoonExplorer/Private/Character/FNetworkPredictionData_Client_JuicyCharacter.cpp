@@ -9,5 +9,5 @@ FNetworkPredictionData_Client_JuicyCharacter::FNetworkPredictionData_Client_Juic
 
 FSavedMovePtr FNetworkPredictionData_Client_JuicyCharacter::AllocateNewMove()
 {
-	return FSavedMovePtr(new FSavedMove_JuicyCharacter);
+	return MakeShared<FSavedMove_JuicyCharacter>();
 }

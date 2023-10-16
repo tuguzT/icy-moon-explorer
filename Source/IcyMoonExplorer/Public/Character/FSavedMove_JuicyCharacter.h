@@ -1,13 +1,18 @@
 ﻿#pragma once
 
-#include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-class ICYMOONEXPLORER_API FSavedMove_JuicyCharacter final : public FSavedMove_Character
+// ReSharper disable once CppClassCanBeFinal
+class ICYMOONEXPLORER_API FSavedMove_JuicyCharacter : public FSavedMove_Character
 {
 	using Super = FSavedMove_Character;
 
 public:
+	uint8 bWantsToSlide : 1;
+
+	FSavedMove_JuicyCharacter();
+	virtual ~FSavedMove_JuicyCharacter() override;
+
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void Clear() override;
 	virtual uint8 GetCompressedFlags() const override;
