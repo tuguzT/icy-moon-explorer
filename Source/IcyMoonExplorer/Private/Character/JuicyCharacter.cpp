@@ -1,6 +1,6 @@
-﻿#include "Character/AJuicyCharacter.h"
+﻿#include "Character/JuicyCharacter.h"
 
-#include "Character/UJuicyCharacterMovementComponent.h"
+#include "Character/JuicyCharacterMovementComponent.h"
 
 namespace Detail
 {

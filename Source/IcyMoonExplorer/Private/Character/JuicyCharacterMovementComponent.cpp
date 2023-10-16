@@ -1,7 +1,7 @@
-#include "Character/UJuicyCharacterMovementComponent.h"
+#include "Character/JuicyCharacterMovementComponent.h"
 
-#include "Character/FNetworkPredictionData_Client_JuicyCharacter.h"
-#include "Character/AJuicyCharacter.h"
+#include "Character/NetworkPredictionData_Client_JuicyCharacter.h"
+#include "Character/JuicyCharacter.h"
 #include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogJuicyCharacterMovement, Log, All);

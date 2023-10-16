@@ -1,8 +1,8 @@
 #pragma once
 
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Character/EJuicyCharacterMovementMode.h"
-#include "UJuicyCharacterMovementComponent.generated.h"
+#include "JuicyCharacterMovementMode.h"
+#include "JuicyCharacterMovementComponent.generated.h"
 
 class AJuicyCharacter;
 

@@ -1,7 +1,7 @@
-﻿#include "Character/FSavedMove_JuicyCharacter.h"
+﻿#include "Character/SavedMove_JuicyCharacter.h"
 
 #include "GameFramework/Character.h"
-#include "Character/UJuicyCharacterMovementComponent.h"
+#include "Character/JuicyCharacterMovementComponent.h"
 
 FSavedMove_JuicyCharacter::FSavedMove_JuicyCharacter()
 {

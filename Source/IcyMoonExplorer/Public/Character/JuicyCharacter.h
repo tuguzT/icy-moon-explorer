@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "GameFramework/Character.h"
-#include "AJuicyCharacter.generated.h"
+#include "JuicyCharacter.generated.h"
 
 class UJuicyCharacterMovementComponent;
 

@@ -1,6 +1,6 @@
-﻿#include "Character/FNetworkPredictionData_Client_JuicyCharacter.h"
+﻿#include "Character/NetworkPredictionData_Client_JuicyCharacter.h"
 
-#include "Character/FSavedMove_JuicyCharacter.h"
+#include "Character/SavedMove_JuicyCharacter.h"
 
 FNetworkPredictionData_Client_JuicyCharacter::FNetworkPredictionData_Client_JuicyCharacter(
 	const UCharacterMovementComponent& ClientMovement): Super(ClientMovement)
