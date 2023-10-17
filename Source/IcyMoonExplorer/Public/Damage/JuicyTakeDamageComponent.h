@@ -4,7 +4,16 @@
 #include "JuicyTakeDamageComponent.generated.h"
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTakeDamageSignature, float, Damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTryTakingDamageSignature, float, Damage);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature, float, DamageTaken);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartTakeDamageCooldownSignature);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndTakeDamageCooldownSignature);
 
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
@@ -19,12 +28,21 @@ class ICYMOONEXPLORER_API UJuicyTakeDamageComponent : public UActorComponent
 
 public:
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
-	FOnTakeDamageSignature OnTakeDamage;
+	FOnTryTakingDamageSignature OnTryTakingDamage;
+
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	FOnDamageTakenSignature OnDamageTaken;
+
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	FOnStartTakeDamageCooldownSignature OnStartTakeDamageCooldown;
+
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	FOnEndTakeDamageCooldownSignature OnEndTakeDamageCooldown;
 
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnDeathSignature OnDeath;
 
-	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	UPROPERTY(Category="Components|Take Damage|Revive", BlueprintAssignable)
 	FOnReviveSignature OnRevive;
 
 	explicit UJuicyTakeDamageComponent(
@@ -44,11 +62,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Take Damage")
 	void SetMaxHealth(float NewMaxHealth);
 
-	UFUNCTION(BlueprintPure, Category="Components|Take Damage|Revive")
-	float GetReviveHealth() const;
-
-	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
-	void SetReviveHealth(float NewReviveHealth);
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
+	bool CanTakeDamage() const;
 
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	bool IsDead() const;
@@ -58,6 +73,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	float GetUnsafeHealthPercentage() const;
+
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage|Revive")
+	float GetReviveHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
+	void SetReviveHealth(float NewReviveHealth);
 
 	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
 	void Revive();
@@ -76,6 +97,10 @@ protected:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
 	float MaxHealth;
 
+	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
+	float TakeDamageCooldown;
+
 	UPROPERTY(Category="Take Damage: Revive", EditAnywhere, BlueprintReadWrite)
 	bool bCanEverRevive;
 
@@ -85,10 +110,15 @@ protected:
 	float ReviveHealth;
 
 private:
+	FTimerHandle TimerHandleForTakeDamageCooldown;
+
 	UFUNCTION()
 	void OnTakeAnyDamage_OwnerDelegate(AActor* DamagedActor, float Damage,
 	                                   const UDamageType* DamageType,
 	                                   AController* InstigatedBy, AActor* DamageCauser);
 
-	void ForceSetHealth(float NewHealth);
+	void SetHealthRaw(float NewHealth);
+
+	void StartTakeDamageCooldown();
+	void EndTakeDamageCooldown();
 };

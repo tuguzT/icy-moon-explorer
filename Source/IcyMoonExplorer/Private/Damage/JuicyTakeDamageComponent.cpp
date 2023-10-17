@@ -9,6 +9,7 @@ UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& O
 
 	MaxHealth = 100.0f;
 	Health = MaxHealth;
+	TakeDamageCooldown = 0.5f;
 	ReviveHealth = MaxHealth;
 	bCanEverRevive = false;
 }
@@ -28,12 +29,22 @@ FORCEINLINE float UJuicyTakeDamageComponent::GetHealth() const
 
 void UJuicyTakeDamageComponent::SetHealth(const float NewHealth)
 {
-	if (IsDead())
+	if (!CanTakeDamage())
 	{
 		return;
 	}
 
-	ForceSetHealth(NewHealth);
+	const float OldHealth = Health;
+	SetHealthRaw(NewHealth);
+	if (OldHealth == Health)
+	{
+		return;
+	}
+
+	const float DamageTaken = OldHealth - Health;
+	OnDamageTaken.Broadcast(DamageTaken);
+	StartTakeDamageCooldown();
+
 	if (IsDead())
 	{
 		OnDeath.Broadcast();
@@ -52,7 +63,13 @@ void UJuicyTakeDamageComponent::SetMaxHealth(const float NewMaxHealth)
 		return;
 	}
 	MaxHealth = NewMaxHealth;
-	SetHealth(Health);
+}
+
+bool UJuicyTakeDamageComponent::CanTakeDamage() const
+{
+	const FTimerManager& TimerManager = GetOwner()->GetWorldTimerManager();
+	const bool IsInCooldown = TimerManager.IsTimerActive(TimerHandleForTakeDamageCooldown);
+	return !IsDead() && !IsInCooldown;
 }
 
 FORCEINLINE float UJuicyTakeDamageComponent::GetReviveHealth() const
@@ -87,7 +104,7 @@ void UJuicyTakeDamageComponent::Revive()
 		return;
 	}
 
-	ForceSetHealth(ReviveHealth);
+	SetHealthRaw(ReviveHealth);
 	OnRevive.Broadcast();
 }
 
@@ -109,10 +126,31 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamage_OwnerDelegate(AActor* const Dama
 		return;
 	}
 
-	OnTakeDamage.Broadcast(Damage);
+	OnTryTakingDamage.Broadcast(Damage);
 }
 
-void UJuicyTakeDamageComponent::ForceSetHealth(const float NewHealth)
+void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)
 {
 	Health = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
+}
+
+void UJuicyTakeDamageComponent::StartTakeDamageCooldown()
+{
+	if (TakeDamageCooldown <= 0.0f)
+	{
+		return;
+	}
+
+	FTimerManager& TimerManager = GetOwner()->GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandleForTakeDamageCooldown, this,
+	                      &UJuicyTakeDamageComponent::EndTakeDamageCooldown,
+	                      TakeDamageCooldown);
+	OnStartTakeDamageCooldown.Broadcast();
+}
+
+void UJuicyTakeDamageComponent::EndTakeDamageCooldown()
+{
+	FTimerManager& TimerManager = GetOwner()->GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForTakeDamageCooldown);
+	OnEndTakeDamageCooldown.Broadcast();
 }
