@@ -123,6 +123,7 @@ void UJuicyCharacterMovementComponent::Dash()
 		CurrentDashDirection = (HasInput() ? Acceleration : UpdatedComponent->GetForwardVector()).GetSafeNormal2D();
 		ResetCharacterRotation(CurrentDashDirection, false);
 		Super::SetMovementMode(MOVE_Flying);
+		Velocity = CurrentDashDirection * DashImpulse;
 
 		FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
 		TimerManager.SetTimer(TimerHandleForDashDuration, this,
@@ -287,12 +288,7 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 
 	// Check for a change in dashing state.
 	// Players toggle sliding by changing bWantsToDash.
-	if (const bool bIsDashing = IsDashing();
-		bIsDashing)
-	{
-		Velocity = CurrentDashDirection * DashImpulse;
-	}
-	else if (!bIsDashing && bWantsToDash && CanDashInCurrentState())
+	if (bWantsToDash && CanDashInCurrentState())
 	{
 		Dash();
 	}
@@ -350,6 +346,7 @@ void UJuicyCharacterMovementComponent::RestoreHalfHeightAfterSliding()
 void UJuicyCharacterMovementComponent::OnEndDash()
 {
 	Super::SetMovementMode(MOVE_Falling);
+	Velocity = CurrentDashDirection.GetSafeNormal() * MaxWalkSpeed;
 
 	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
 	TimerManager.ClearTimer(TimerHandleForDashDuration);
