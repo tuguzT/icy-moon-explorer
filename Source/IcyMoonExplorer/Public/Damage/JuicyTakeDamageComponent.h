@@ -4,7 +4,11 @@
 #include "JuicyTakeDamageComponent.generated.h"
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTryTakingDamageSignature, float, Damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTryTakingDamageSignature,
+                                              float, Damage,
+                                              const UDamageType*, DamageType,
+                                              AController*, InstigatedBy,
+                                              AActor*, DamageDealer);
 
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature, float, DamageTaken);
@@ -101,8 +105,11 @@ protected:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
 	float TakeDamageCooldown;
 
+	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanTakeDamageFromSelf : 1;
+
 	UPROPERTY(Category="Take Damage: Revive", EditAnywhere, BlueprintReadWrite)
-	bool bCanEverRevive;
+	uint8 bCanEverRevive : 1;
 
 	UPROPERTY(Category="Take Damage: Revive", EditAnywhere,
 		BlueprintGetter=GetReviveHealth, BlueprintSetter=SetReviveHealth,

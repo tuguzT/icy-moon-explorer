@@ -10,8 +10,9 @@ UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& O
 	MaxHealth = 100.0f;
 	Health = MaxHealth;
 	TakeDamageCooldown = 0.5f;
-	ReviveHealth = MaxHealth;
+	bCanTakeDamageFromSelf = true;
 	bCanEverRevive = false;
+	ReviveHealth = MaxHealth;
 }
 
 void UJuicyTakeDamageComponent::BeginPlay()
@@ -121,12 +122,17 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamage_OwnerDelegate(AActor* const Dama
                                                               AController* const InstigatedBy,
                                                               AActor* const DamageCauser)
 {
-	if (GetOwner() != DamagedActor)
+	const AActor* Owner = GetOwner();
+	if (Owner != DamagedActor)
+	{
+		return;
+	}
+	if (!bCanTakeDamageFromSelf && Owner == DamageCauser)
 	{
 		return;
 	}
 
-	OnTryTakingDamage.Broadcast(Damage);
+	OnTryTakingDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser);
 }
 
 void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)
