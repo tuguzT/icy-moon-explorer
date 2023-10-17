@@ -1,5 +1,7 @@
 ﻿#include "Damage/JuicyTakeDamageComponent.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -7,6 +9,8 @@ UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& O
 
 	MaxHealth = 100.0f;
 	Health = MaxHealth;
+	ReviveHealth = MaxHealth;
+	bCanEverRevive = false;
 }
 
 void UJuicyTakeDamageComponent::BeginPlay()
@@ -24,7 +28,16 @@ FORCEINLINE float UJuicyTakeDamageComponent::GetHealth() const
 
 void UJuicyTakeDamageComponent::SetHealth(const float NewHealth)
 {
-	Health = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
+	if (IsDead())
+	{
+		return;
+	}
+
+	ForceSetHealth(NewHealth);
+	if (IsDead())
+	{
+		OnDeath.Broadcast();
+	}
 }
 
 FORCEINLINE float UJuicyTakeDamageComponent::GetMaxHealth() const
@@ -42,6 +55,47 @@ void UJuicyTakeDamageComponent::SetMaxHealth(const float NewMaxHealth)
 	SetHealth(Health);
 }
 
+FORCEINLINE float UJuicyTakeDamageComponent::GetReviveHealth() const
+{
+	return ReviveHealth;
+}
+
+void UJuicyTakeDamageComponent::SetReviveHealth(const float NewReviveHealth)
+{
+	ReviveHealth = FMath::Clamp(NewReviveHealth, 0.0f, MaxHealth);
+}
+
+FORCEINLINE bool UJuicyTakeDamageComponent::IsDead() const
+{
+	return Health <= 0.0f;
+}
+
+FORCEINLINE float UJuicyTakeDamageComponent::GetSafeHealthPercentage() const
+{
+	return UKismetMathLibrary::SafeDivide(Health, MaxHealth);
+}
+
+FORCEINLINE float UJuicyTakeDamageComponent::GetUnsafeHealthPercentage() const
+{
+	return Health / MaxHealth;
+}
+
+void UJuicyTakeDamageComponent::Revive()
+{
+	if (!CanRevive())
+	{
+		return;
+	}
+
+	ForceSetHealth(ReviveHealth);
+	OnRevive.Broadcast();
+}
+
+bool UJuicyTakeDamageComponent::CanRevive() const
+{
+	return bCanEverRevive && IsDead();
+}
+
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 // ReSharper disable once CppMemberFunctionMayBeConst
 void UJuicyTakeDamageComponent::OnTakeAnyDamage_OwnerDelegate(AActor* const DamagedActor,
@@ -56,4 +110,9 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamage_OwnerDelegate(AActor* const Dama
 	}
 
 	OnTakeDamage.Broadcast(Damage);
+}
+
+void UJuicyTakeDamageComponent::ForceSetHealth(const float NewHealth)
+{
+	Health = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
 }
