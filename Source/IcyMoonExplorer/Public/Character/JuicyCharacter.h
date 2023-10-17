@@ -14,6 +14,7 @@ public:
 	explicit AJuicyCharacter(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	UFUNCTION(BlueprintPure, Category=Character)
 	UJuicyCharacterMovementComponent* GetJuicyCharacterMovement() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
@@ -22,7 +23,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void StopSliding();
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanSlide() const;
 
 	virtual void OnStartSlide();
@@ -41,7 +42,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void StopDashing();
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanDash() const;
 
 	virtual void OnStartDash();
