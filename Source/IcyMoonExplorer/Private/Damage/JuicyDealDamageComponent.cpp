@@ -1,14 +1,14 @@
 ﻿#include "Damage/JuicyDealDamageComponent.h"
 
-#include "Engine/DamageEvents.h"
-
 UJuicyDealDamageComponent::UJuicyDealDamageComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 }
 
-void UJuicyDealDamageComponent::DealDamage(AActor* ActorToDamage, const float Damage) const
+// ReSharper disable once CppPassValueParameterByConstReference
+void UJuicyDealDamageComponent::DealDamage(AActor* ActorToDamage, const float Damage,
+                                           const FDamageEvent DamageEvent) const
 {
 	if (ActorToDamage == nullptr)
 	{
@@ -17,6 +17,5 @@ void UJuicyDealDamageComponent::DealDamage(AActor* ActorToDamage, const float Da
 
 	AActor* const Attacker = GetOwner();
 	AController* const AttackerInstigator = Attacker->GetInstigatorController();
-	const FDamageEvent DamageEvent;
 	ActorToDamage->TakeDamage(Damage, DamageEvent, AttackerInstigator, Attacker);
 }
