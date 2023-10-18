@@ -88,6 +88,8 @@ private:
 	void ChangeHalfHeightBeforeSliding();
 	void RestoreHalfHeightAfterSliding();
 
-	void OnEndDash();
-	void OnEndDashCooldown();
+	void StartDash();
+	void EndDash();
+	void StartDashCooldown();
+	void EndDashCooldown();
 };

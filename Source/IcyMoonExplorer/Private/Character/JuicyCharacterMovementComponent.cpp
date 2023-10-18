@@ -120,16 +120,7 @@ void UJuicyCharacterMovementComponent::Dash()
 
 	if (CanDashInCurrentState())
 	{
-		CurrentDashDirection = (HasInput() ? Acceleration : UpdatedComponent->GetForwardVector()).GetSafeNormal2D();
-		ResetCharacterRotation(CurrentDashDirection, false);
-		Super::SetMovementMode(MOVE_Flying);
-		Velocity = CurrentDashDirection * DashImpulse;
-
-		FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-		TimerManager.SetTimer(TimerHandleForDashDuration, this,
-		                      &UJuicyCharacterMovementComponent::OnEndDash,
-		                      DashDuration);
-		GetJuicyCharacterOwner()->OnStartDash();
+		StartDash();
 	}
 }
 
@@ -203,6 +194,7 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 
 void UJuicyCharacterMovementComponent::PhysJuicyCustom(float DeltaTime, int32 Iterations)
 {
+	// to be implemented by derived class
 }
 
 void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 Iterations)
@@ -329,7 +321,8 @@ bool UJuicyCharacterMovementComponent::GetSlideSurface(FHitResult& OutHit) const
 void UJuicyCharacterMovementComponent::ChangeHalfHeightBeforeSliding()
 {
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(SlideHalfHeight);
-	CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector::DownVector * SlideHalfHeight);
+	const FVector OldLocation = CharacterOwner->GetActorLocation();
+	CharacterOwner->SetActorLocation(OldLocation + FVector::DownVector * SlideHalfHeight);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
@@ -340,10 +333,30 @@ void UJuicyCharacterMovementComponent::RestoreHalfHeightAfterSliding()
 	const float DefaultHalfHeight = DefaultCapsule->GetScaledCapsuleHalfHeight();
 
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultHalfHeight);
-	CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector::UpVector * SlideHalfHeight);
+	const FVector OldLocation = CharacterOwner->GetActorLocation();
+	CharacterOwner->SetActorLocation(OldLocation + FVector::UpVector * SlideHalfHeight);
 }
 
-void UJuicyCharacterMovementComponent::OnEndDash()
+void UJuicyCharacterMovementComponent::StartDash()
+{
+	if (DashDuration <= 0.0f)
+	{
+		return;
+	}
+
+	CurrentDashDirection = (HasInput() ? Acceleration : UpdatedComponent->GetForwardVector()).GetSafeNormal2D();
+	ResetCharacterRotation(CurrentDashDirection, false);
+	Super::SetMovementMode(MOVE_Flying);
+	Velocity = CurrentDashDirection * DashImpulse;
+
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandleForDashDuration, this,
+	                      &UJuicyCharacterMovementComponent::EndDash,
+	                      DashDuration);
+	GetJuicyCharacterOwner()->OnStartDash();
+}
+
+void UJuicyCharacterMovementComponent::EndDash()
 {
 	Super::SetMovementMode(MOVE_Falling);
 	Velocity = CurrentDashDirection.GetSafeNormal() * MaxWalkSpeed;
@@ -352,13 +365,24 @@ void UJuicyCharacterMovementComponent::OnEndDash()
 	TimerManager.ClearTimer(TimerHandleForDashDuration);
 	GetJuicyCharacterOwner()->OnEndDash();
 
+	StartDashCooldown();
+}
+
+void UJuicyCharacterMovementComponent::StartDashCooldown()
+{
+	if (DashCooldown <= 0.0f)
+	{
+		return;
+	}
+
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
 	TimerManager.SetTimer(TimerHandleForDashCooldown, this,
-	                      &UJuicyCharacterMovementComponent::OnEndDashCooldown,
+	                      &UJuicyCharacterMovementComponent::EndDashCooldown,
 	                      DashCooldown);
 	GetJuicyCharacterOwner()->OnStartDashCooldown();
 }
 
-void UJuicyCharacterMovementComponent::OnEndDashCooldown()
+void UJuicyCharacterMovementComponent::EndDashCooldown()
 {
 	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
 	TimerManager.ClearTimer(TimerHandleForDashCooldown);

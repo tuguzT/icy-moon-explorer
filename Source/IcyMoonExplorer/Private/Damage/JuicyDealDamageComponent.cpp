@@ -1,21 +1,22 @@
 ﻿#include "Damage/JuicyDealDamageComponent.h"
 
+#include "Engine/DamageEvents.h"
+
 UJuicyDealDamageComponent::UJuicyDealDamageComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 }
 
-// ReSharper disable once CppPassValueParameterByConstReference
-void UJuicyDealDamageComponent::DealDamage(AActor* ActorToDamage, const float Damage,
-                                           const FDamageEvent DamageEvent) const
+void UJuicyDealDamageComponent::DealDamage(AActor* ActorToDamage, const float Damage) const
 {
 	if (ActorToDamage == nullptr)
 	{
 		return;
 	}
 
+	const FDamageEvent DamageEvent;
 	AActor* const Attacker = GetOwner();
-	AController* const AttackerInstigator = Attacker->GetInstigatorController();
-	ActorToDamage->TakeDamage(Damage, DamageEvent, AttackerInstigator, Attacker);
+	AController* const Instigator = Attacker->GetInstigatorController();
+	ActorToDamage->TakeDamage(Damage, DamageEvent, Instigator, Attacker);
 }

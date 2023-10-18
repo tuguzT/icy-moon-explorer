@@ -68,9 +68,13 @@ void UJuicyTakeDamageComponent::SetMaxHealth(const float NewMaxHealth)
 
 bool UJuicyTakeDamageComponent::CanTakeDamage() const
 {
+	return !IsDead() && !IsTakeDamageCooldown();
+}
+
+bool UJuicyTakeDamageComponent::IsTakeDamageCooldown() const
+{
 	const FTimerManager& TimerManager = GetOwner()->GetWorldTimerManager();
-	const bool IsInCooldown = TimerManager.IsTimerActive(TimerHandleForTakeDamageCooldown);
-	return !IsDead() && !IsInCooldown;
+	return TimerManager.IsTimerActive(TimerHandleForTakeDamageCooldown);
 }
 
 FORCEINLINE float UJuicyTakeDamageComponent::GetReviveHealth() const

@@ -70,6 +70,9 @@ public:
 	bool CanTakeDamage() const;
 
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
+	bool IsTakeDamageCooldown() const;
+
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	bool IsDead() const;
 
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")

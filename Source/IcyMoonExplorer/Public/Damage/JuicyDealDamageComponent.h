@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Engine/DamageEvents.h"
 #include "Components/ActorComponent.h"
 #include "JuicyDealDamageComponent.generated.h"
 
@@ -14,6 +13,5 @@ public:
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	void DealDamage(AActor* ActorToDamage, float Damage,
-	                FDamageEvent DamageEvent = FDamageEvent()) const;
+	void DealDamage(AActor* ActorToDamage, float Damage) const;
 };
