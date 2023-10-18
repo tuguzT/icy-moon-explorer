@@ -19,8 +19,10 @@ void UJuicyTakeDamageComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FTakeAnyDamageSignature& DamageDelegate = GetOwner()->OnTakeAnyDamage;
-	DamageDelegate.AddUniqueDynamic(this, &UJuicyTakeDamageComponent::OnTakeAnyDamage_OwnerDelegate);
+	AActor* const Owner = GetOwner();
+	Owner->OnTakeAnyDamage.AddUniqueDynamic(this, &UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner);
+	Owner->OnTakePointDamage.AddUniqueDynamic(this, &UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner);
+	Owner->OnTakeRadialDamage.AddUniqueDynamic(this, &UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner);
 }
 
 FORCEINLINE float UJuicyTakeDamageComponent::GetHealth() const
@@ -118,25 +120,78 @@ bool UJuicyTakeDamageComponent::CanRevive() const
 	return bCanEverRevive && IsDead();
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
 // ReSharper disable once CppMemberFunctionMayBeConst
-void UJuicyTakeDamageComponent::OnTakeAnyDamage_OwnerDelegate(AActor* const DamagedActor,
-                                                              const float Damage,
-                                                              const UDamageType* const DamageType,
-                                                              AController* const InstigatedBy,
-                                                              AActor* const DamageCauser)
+void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	AActor* const DamagedActor,
+	const float Damage,
+	const UDamageType* const DamageType,
+	AController* const InstigatedBy,
+	AActor* const DamageCauser)
+{
+	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
+	{
+		OnTryTakingAnyDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser);
+	}
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	AActor* const DamagedActor,
+	const float Damage,
+	AController* const InstigatedBy,
+	// ReSharper disable once CppPassValueParameterByConstReference
+	const FVector HitLocation,
+	UPrimitiveComponent* const FHitComponent,
+	const FName BoneName,
+	// ReSharper disable once CppPassValueParameterByConstReference
+	const FVector ShotFromDirection,
+	const UDamageType* const DamageType,
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	AActor* const DamageCauser)
+{
+	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
+	{
+		OnTryTakingPointDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser,
+		                                 HitLocation, FHitComponent, BoneName, ShotFromDirection);
+	}
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
+	AActor* const DamagedActor,
+	const float Damage,
+	const UDamageType* const DamageType,
+	// ReSharper disable once CppPassValueParameterByConstReference
+	const FVector Origin,
+	const FHitResult& HitInfo,
+	AController* const InstigatedBy,
+	AActor* const DamageCauser)
+{
+	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
+	{
+		OnTryTakingRadialDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser,
+		                                  Origin, HitInfo);
+	}
+}
+
+bool UJuicyTakeDamageComponent::CanTakeDamageDelegatedFromOwner(
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	AActor* const DamagedActor,
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	AActor* const DamageCauser) const
 {
 	const AActor* Owner = GetOwner();
 	if (Owner != DamagedActor)
 	{
-		return;
+		return false;
 	}
 	if (!bCanTakeDamageFromSelf && Owner == DamageCauser)
 	{
-		return;
+		return false;
 	}
-
-	OnTryTakingDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser);
+	return true;
 }
 
 void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)

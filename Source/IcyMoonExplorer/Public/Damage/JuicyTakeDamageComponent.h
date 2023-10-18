@@ -4,11 +4,31 @@
 #include "JuicyTakeDamageComponent.generated.h"
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTryTakingDamageSignature,
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTryTakingAnyDamageSignature,
                                               float, Damage,
                                               const UDamageType*, DamageType,
                                               AController*, InstigatedBy,
                                               AActor*, DamageDealer);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_EightParams(FOnTryTakingPointDamageSignature,
+                                               float, Damage,
+                                               const UDamageType*, DamageType,
+                                               AController*, InstigatedBy,
+                                               AActor*, DamageCauser,
+                                               FVector, HitLocation,
+                                               UPrimitiveComponent*, FHitComponent,
+                                               FName, BoneName,
+                                               FVector, ShotFromDirection);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_SixParams(FOnTryTakingRadialDamageSignature,
+                                             float, Damage,
+                                             const UDamageType*, DamageType,
+                                             AController*, InstigatedBy,
+                                             AActor*, DamageCauser,
+                                             FVector, Origin,
+                                             const FHitResult&, HitInfo);
 
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature, float, DamageTaken);
@@ -32,7 +52,13 @@ class ICYMOONEXPLORER_API UJuicyTakeDamageComponent : public UActorComponent
 
 public:
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
-	FOnTryTakingDamageSignature OnTryTakingDamage;
+	FOnTryTakingAnyDamageSignature OnTryTakingAnyDamage;
+
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	FOnTryTakingPointDamageSignature OnTryTakingPointDamage;
+
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	FOnTryTakingRadialDamageSignature OnTryTakingRadialDamage;
 
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnDamageTakenSignature OnDamageTaken;
@@ -46,7 +72,7 @@ public:
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnDeathSignature OnDeath;
 
-	UPROPERTY(Category="Components|Take Damage|Revive", BlueprintAssignable)
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnReviveSignature OnRevive;
 
 	explicit UJuicyTakeDamageComponent(
@@ -81,16 +107,16 @@ public:
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	float GetUnsafeHealthPercentage() const;
 
-	UFUNCTION(BlueprintPure, Category="Components|Take Damage|Revive")
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	float GetReviveHealth() const;
 
-	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
+	UFUNCTION(BlueprintCallable, Category="Components|Take Damage")
 	void SetReviveHealth(float NewReviveHealth);
 
-	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
+	UFUNCTION(BlueprintCallable, Category="Components|Take Damage")
 	void Revive();
 
-	UFUNCTION(BlueprintPure, Category="Components|Take Damage|Revive")
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	bool CanRevive() const;
 
 protected:
@@ -111,10 +137,10 @@ protected:
 	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanTakeDamageFromSelf : 1;
 
-	UPROPERTY(Category="Take Damage: Revive", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanEverRevive : 1;
 
-	UPROPERTY(Category="Take Damage: Revive", EditAnywhere,
+	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere,
 		BlueprintGetter=GetReviveHealth, BlueprintSetter=SetReviveHealth,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
 	float ReviveHealth;
@@ -123,9 +149,20 @@ private:
 	FTimerHandle TimerHandleForTakeDamageCooldown;
 
 	UFUNCTION()
-	void OnTakeAnyDamage_OwnerDelegate(AActor* DamagedActor, float Damage,
-	                                   const UDamageType* DamageType,
-	                                   AController* InstigatedBy, AActor* DamageCauser);
+	void OnTakeAnyDamageDelegatedFromOwner(AActor* DamagedActor, float Damage,
+	                                       const UDamageType* DamageType,
+	                                       AController* InstigatedBy, AActor* DamageCauser);
+	UFUNCTION()
+	void OnTakePointDamageDelegatedFromOwner(AActor* DamagedActor, float Damage, AController* InstigatedBy,
+	                                         FVector HitLocation,
+	                                         UPrimitiveComponent* FHitComponent, FName BoneName,
+	                                         FVector ShotFromDirection,
+	                                         const UDamageType* DamageType, AActor* DamageCauser);
+	UFUNCTION()
+	void OnTakeRadialDamageDelegatedFromOwner(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+	                                          FVector Origin, const FHitResult& HitInfo, AController* InstigatedBy,
+	                                          AActor* DamageCauser);
+	bool CanTakeDamageDelegatedFromOwner(AActor* DamagedActor, AActor* DamageCauser) const;
 
 	void SetHealthRaw(float NewHealth);
 
