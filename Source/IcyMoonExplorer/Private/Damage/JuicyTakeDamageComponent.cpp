@@ -131,7 +131,13 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		OnTryTakingAnyDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser);
+		const auto DamageToTake = FJuicyTakeDamage{
+			.Damage = Damage,
+			.DamageType = DamageType,
+			.DamageDealer = DamageCauser,
+			.InstigatedBy = InstigatedBy,
+		};
+		OnTryTakingAnyDamage.Broadcast(DamageToTake);
 	}
 }
 
@@ -153,8 +159,13 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		OnTryTakingPointDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser,
-		                                 HitLocation, FHitComponent, BoneName, ShotFromDirection);
+		const auto DamageToTake = FJuicyTakeDamage{
+			.Damage = Damage,
+			.DamageType = DamageType,
+			.DamageDealer = DamageCauser,
+			.InstigatedBy = InstigatedBy,
+		};
+		OnTryTakingPointDamage.Broadcast(DamageToTake, HitLocation, FHitComponent, BoneName, ShotFromDirection);
 	}
 }
 
@@ -171,8 +182,13 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		OnTryTakingRadialDamage.Broadcast(Damage, DamageType, InstigatedBy, DamageCauser,
-		                                  Origin, HitInfo);
+		const auto DamageToTake = FJuicyTakeDamage{
+			.Damage = Damage,
+			.DamageType = DamageType,
+			.DamageDealer = DamageCauser,
+			.InstigatedBy = InstigatedBy,
+		};
+		OnTryTakingRadialDamage.Broadcast(DamageToTake, Origin, HitInfo);
 	}
 }
 

@@ -8,50 +8,57 @@ UJuicyDealDamageComponent::UJuicyDealDamageComponent(const FObjectInitializer& O
 	bAutoActivate = true;
 }
 
-void UJuicyDealDamageComponent::DealDamage(AActor* DamagedActor, const float Damage,
-                                           const TSubclassOf<UDamageType> DamageTypeClass) const
+FORCEINLINE AActor* UJuicyDealDamageComponent::GetDamageDealer() const
 {
-	AActor* const DamageCauser = GetOwner();
-	AController* const Instigator = DamageCauser->GetInstigatorController();
-	UGameplayStatics::ApplyDamage(DamagedActor, Damage, Instigator, DamageCauser, DamageTypeClass);
+	return GetOwner();
 }
 
-void UJuicyDealDamageComponent::DealPointDamage(AActor* DamagedActor, const float Damage,
-                                                const TSubclassOf<UDamageType> DamageTypeClass,
-                                                const FVector& HitFromDirection, const FHitResult& HitInfo) const
+FORCEINLINE AController* UJuicyDealDamageComponent::GetDamageInstigator() const
 {
-	AActor* const DamageCauser = GetOwner();
-	AController* const Instigator = DamageCauser->GetInstigatorController();
-	UGameplayStatics::ApplyPointDamage(DamagedActor, Damage, HitFromDirection, HitInfo,
-	                                   Instigator, DamageCauser, DamageTypeClass);
+	const AActor* DamageDealer = GetDamageDealer();
+	return DamageDealer ? DamageDealer->GetInstigatorController() : nullptr;
 }
 
-bool UJuicyDealDamageComponent::DealRadialDamage(const float Damage, const TSubclassOf<UDamageType> DamageTypeClass,
-                                                 const UObject* const WorldContextObject,
-                                                 const FVector& Origin, const float DamageRadius,
-                                                 const TArray<AActor*>& IgnoreActors, const bool bDoFullDamage,
-                                                 const ECollisionChannel DamagePreventionChannel) const
+FORCEINLINE void UJuicyDealDamageComponent::DealDamage(const FJuicyDealDamage DamageToDeal,
+                                                       AActor* const DamagedActor) const
 {
-	AActor* const DamageCauser = GetOwner();
-	AController* const Instigator = DamageCauser->GetInstigatorController();
-	return UGameplayStatics::ApplyRadialDamage(WorldContextObject, Damage, Origin, DamageRadius,
-	                                           DamageTypeClass, IgnoreActors, DamageCauser, Instigator, bDoFullDamage,
-	                                           DamagePreventionChannel);
+	UGameplayStatics::ApplyDamage(DamagedActor, DamageToDeal.Damage, GetDamageInstigator(),
+	                              GetDamageDealer(), DamageToDeal.DamageTypeClass);
 }
 
-bool UJuicyDealDamageComponent::DealRadialDamageWithFalloff(const float Damage,
-                                                            const TSubclassOf<UDamageType> DamageTypeClass,
-                                                            const UObject* WorldContextObject,
-                                                            const float MinimumDamage,
-                                                            const FVector& Origin, const float DamageInnerRadius,
-                                                            const float DamageOuterRadius, const float DamageFalloff,
-                                                            const TArray<AActor*>& IgnoreActors,
-                                                            const ECollisionChannel DamagePreventionChannel) const
+FORCEINLINE void UJuicyDealDamageComponent::DealPointDamage(const FJuicyDealDamage DamageToDeal,
+                                                            AActor* const DamagedActor,
+                                                            const FVector& HitFromDirection,
+                                                            const FHitResult& HitInfo) const
 {
-	AActor* const DamageCauser = GetOwner();
-	AController* const Instigator = DamageCauser->GetInstigatorController();
-	return UGameplayStatics::ApplyRadialDamageWithFalloff(WorldContextObject, Damage, MinimumDamage, Origin,
+	UGameplayStatics::ApplyPointDamage(DamagedActor, DamageToDeal.Damage, HitFromDirection, HitInfo,
+	                                   GetDamageInstigator(), GetDamageDealer(), DamageToDeal.DamageTypeClass);
+}
+
+FORCEINLINE bool UJuicyDealDamageComponent::DealRadialDamage(const FJuicyDealDamage DamageToDeal,
+                                                             const FVector& Origin, const float DamageRadius,
+                                                             const TArray<AActor*>& IgnoreActors,
+                                                             const bool bDoFullDamage,
+                                                             const ECollisionChannel DamagePreventionChannel) const
+{
+	return UGameplayStatics::ApplyRadialDamage(this, DamageToDeal.Damage, Origin, DamageRadius,
+	                                           DamageToDeal.DamageTypeClass, IgnoreActors, GetDamageDealer(),
+	                                           GetDamageInstigator(),
+	                                           bDoFullDamage, DamagePreventionChannel);
+}
+
+FORCEINLINE bool UJuicyDealDamageComponent::DealRadialDamageWithFalloff(const FJuicyDealDamage DamageToDeal,
+                                                                        const float MinimumDamage,
+                                                                        const FVector& Origin,
+                                                                        const float DamageInnerRadius,
+                                                                        const float DamageOuterRadius,
+                                                                        const float DamageFalloff,
+                                                                        const TArray<AActor*>& IgnoreActors,
+                                                                        const ECollisionChannel DamagePreventionChannel)
+const
+{
+	return UGameplayStatics::ApplyRadialDamageWithFalloff(this, DamageToDeal.Damage, MinimumDamage, Origin,
 	                                                      DamageInnerRadius, DamageOuterRadius, DamageFalloff,
-	                                                      DamageTypeClass, IgnoreActors, DamageCauser, Instigator,
-	                                                      DamagePreventionChannel);
+	                                                      DamageToDeal.DamageTypeClass, IgnoreActors, GetDamageDealer(),
+	                                                      GetDamageInstigator(), DamagePreventionChannel);
 }

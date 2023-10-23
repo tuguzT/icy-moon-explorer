@@ -1,34 +1,26 @@
 ﻿#pragma once
 
 #include "Components/ActorComponent.h"
+#include "JuicyTakeDamage.h"
 #include "JuicyTakeDamageComponent.generated.h"
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnTryTakingAnyDamageSignature,
-                                              float, Damage,
-                                              const UDamageType*, DamageType,
-                                              AController*, InstigatedBy,
-                                              AActor*, DamageDealer);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTryTakingAnyDamageSignature,
+                                            FJuicyTakeDamage, DamageToTake);
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_EightParams(FOnTryTakingPointDamageSignature,
-                                               float, Damage,
-                                               const UDamageType*, DamageType,
-                                               AController*, InstigatedBy,
-                                               AActor*, DamageCauser,
-                                               FVector, HitLocation,
-                                               UPrimitiveComponent*, FHitComponent,
-                                               FName, BoneName,
-                                               FVector, ShotFromDirection);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnTryTakingPointDamageSignature,
+                                              FJuicyTakeDamage, DamageToTake,
+                                              FVector, HitLocation,
+                                              UPrimitiveComponent*, FHitComponent,
+                                              FName, BoneName,
+                                              FVector, ShotFromDirection);
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_SixParams(FOnTryTakingRadialDamageSignature,
-                                             float, Damage,
-                                             const UDamageType*, DamageType,
-                                             AController*, InstigatedBy,
-                                             AActor*, DamageCauser,
-                                             FVector, Origin,
-                                             const FHitResult&, HitInfo);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTryTakingRadialDamageSignature,
+                                               FJuicyTakeDamage, DamageToTake,
+                                               FVector, Origin,
+                                               const FHitResult&, HitInfo);
 
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature, float, DamageTaken);

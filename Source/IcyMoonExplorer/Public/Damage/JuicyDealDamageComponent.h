@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Components/ActorComponent.h"
+#include "JuicyDealDamage.h"
 #include "JuicyDealDamageComponent.generated.h"
 
 UCLASS(ClassGroup=(Damage), meta=(BlueprintSpawnableComponent))
@@ -12,29 +13,27 @@ public:
 	explicit UJuicyDealDamageComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	void DealDamage(AActor* DamagedActor, float Damage,
-	                TSubclassOf<UDamageType> DamageTypeClass) const;
+	UFUNCTION(BlueprintCallable, Category="Components|Deal Damage")
+	AActor* GetDamageDealer() const;
+
+	UFUNCTION(BlueprintCallable, Category="Components|Deal Damage")
+	AController* GetDamageInstigator() const;
 
 	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	void DealPointDamage(AActor* DamagedActor, float Damage,
-	                     TSubclassOf<UDamageType> DamageTypeClass,
+	void DealDamage(FJuicyDealDamage DamageToDeal, AActor* DamagedActor) const;
+
+	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
+	void DealPointDamage(FJuicyDealDamage DamageToDeal, AActor* DamagedActor,
 	                     const FVector& HitFromDirection, const FHitResult& HitInfo) const;
 
-	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage",
-		meta=(WorldContext="WorldContextObject"))
-	bool DealRadialDamage(float Damage, TSubclassOf<UDamageType> DamageTypeClass,
-	                      const UObject* WorldContextObject,
-	                      const FVector& Origin, float DamageRadius,
+	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
+	bool DealRadialDamage(FJuicyDealDamage DamageToDeal, const FVector& Origin, float DamageRadius,
 	                      const TArray<AActor*>& IgnoreActors, bool bDoFullDamage = false,
 	                      ECollisionChannel DamagePreventionChannel = ECC_Visibility) const;
 
-	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage",
-		meta=(WorldContext="WorldContextObject"))
-	bool DealRadialDamageWithFalloff(float Damage, TSubclassOf<UDamageType> DamageTypeClass,
-	                                 const UObject* WorldContextObject,
-	                                 float MinimumDamage, const FVector& Origin,
-	                                 float DamageInnerRadius, float DamageOuterRadius,
-	                                 float DamageFalloff, const TArray<AActor*>& IgnoreActors,
+	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
+	bool DealRadialDamageWithFalloff(FJuicyDealDamage DamageToDeal, float MinimumDamage, const FVector& Origin,
+	                                 float DamageInnerRadius, float DamageOuterRadius, float DamageFalloff,
+	                                 const TArray<AActor*>& IgnoreActors,
 	                                 ECollisionChannel DamagePreventionChannel = ECC_Visibility) const;
 };
