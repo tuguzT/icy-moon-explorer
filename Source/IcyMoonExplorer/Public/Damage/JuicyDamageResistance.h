@@ -3,39 +3,28 @@
 #include "JuicyTakeDamage.h"
 #include "JuicyDamageResistance.generated.h"
 
-UCLASS(BlueprintType, Blueprintable)
-class ICYMOONEXPLORER_API UJuicyDamageResistance : public UObject
+USTRUCT(BlueprintType, Blueprintable)
+struct ICYMOONEXPLORER_API FJuicyDamageResistance
 {
 	GENERATED_BODY()
 
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage Resistance")
 	TSubclassOf<UDamageType> DamageTypeClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage Resistance")
-	float Multiplier;
+	float Multiplier = 1.0f;
 
-	explicit UJuicyDamageResistance(
-		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	float ProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
 
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual float ProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
+	bool CanProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
 
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual bool CanProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
+	bool HasAnyEffect() const;
 
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual bool HasAnyEffect() const;
+	bool IsResistantToDamage() const;
 
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual bool IsResistantToDamage() const;
+	bool IsWeakToDamage() const;
 
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual bool IsWeakToDamage() const;
+	bool IsImmuneToDamage() const;
 
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual bool IsImmuneToDamage() const;
-
-	UFUNCTION(BlueprintCallable, Category="Damage Resistance")
-	virtual bool CanHealFromDamage() const;
+	bool CanHealFromDamage() const;
 };

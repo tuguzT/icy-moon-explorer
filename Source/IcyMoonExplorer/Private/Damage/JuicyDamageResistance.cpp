@@ -1,12 +1,6 @@
 ﻿#include "Damage/JuicyDamageResistance.h"
 
-UJuicyDamageResistance::UJuicyDamageResistance(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	Multiplier = 1.0f;
-}
-
-float UJuicyDamageResistance::ProcessDamage(const FJuicyTakeDamage& DamageToTake) const
+float FJuicyDamageResistance::ProcessDamage(const FJuicyTakeDamage& DamageToTake) const
 {
 	if (!CanProcessDamage(DamageToTake))
 	{
@@ -15,32 +9,32 @@ float UJuicyDamageResistance::ProcessDamage(const FJuicyTakeDamage& DamageToTake
 	return DamageToTake.Damage * Multiplier;
 }
 
-bool UJuicyDamageResistance::CanProcessDamage(const FJuicyTakeDamage& DamageToTake) const
+bool FJuicyDamageResistance::CanProcessDamage(const FJuicyTakeDamage& DamageToTake) const
 {
 	return DamageToTake.DamageType.IsA(DamageTypeClass);
 }
 
-bool UJuicyDamageResistance::HasAnyEffect() const
+bool FJuicyDamageResistance::HasAnyEffect() const
 {
 	return Multiplier != 1.0f;
 }
 
-bool UJuicyDamageResistance::IsResistantToDamage() const
+bool FJuicyDamageResistance::IsResistantToDamage() const
 {
 	return Multiplier < 1.0f;
 }
 
-bool UJuicyDamageResistance::IsWeakToDamage() const
+bool FJuicyDamageResistance::IsWeakToDamage() const
 {
 	return Multiplier > 1.0f;
 }
 
-bool UJuicyDamageResistance::IsImmuneToDamage() const
+bool FJuicyDamageResistance::IsImmuneToDamage() const
 {
 	return Multiplier == 0.0f;
 }
 
-bool UJuicyDamageResistance::CanHealFromDamage() const
+bool FJuicyDamageResistance::CanHealFromDamage() const
 {
 	return Multiplier < 0.0f;
 }

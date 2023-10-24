@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Components/ActorComponent.h"
-#include "JuicyTakeDamage.h"
+#include "JuicyDamageResistance.h"
 #include "JuicyTakeDamageComponent.generated.h"
 
 UDELEGATE(BlueprintCallable)
@@ -66,6 +66,10 @@ public:
 
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnReviveSignature OnRevive;
+
+	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite,
+		meta=(DisplayAfter=bCanTakeDamageFromSelf))
+	TArray<FJuicyDamageResistance> DamageResistances;
 
 	explicit UJuicyTakeDamageComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

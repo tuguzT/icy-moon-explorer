@@ -1,21 +1,58 @@
 ﻿#include "Damage/JuicyDamageLibrary.h"
 
-FORCEINLINE bool UJuicyDamageLibrary::IsDealingHeal(const FJuicyDealDamage& DamageToDeal)
+bool UJuicyDamageLibrary::IsDealingHeal(const FJuicyDealDamage& DamageToDeal)
 {
 	return DamageToDeal.IsHealing();
 }
 
-FORCEINLINE bool UJuicyDamageLibrary::HasAnyEffectToDeal(const FJuicyDealDamage& DamageToDeal, const float Tolerance)
+bool UJuicyDamageLibrary::HasAnyDamageToDeal(const FJuicyDealDamage& DamageToDeal, const float Tolerance)
 {
 	return DamageToDeal.HasAnyEffect(Tolerance);
 }
 
-FORCEINLINE bool UJuicyDamageLibrary::IsTakingHeal(const FJuicyTakeDamage& DamageToTake)
+bool UJuicyDamageLibrary::IsTakingHeal(const FJuicyTakeDamage& DamageToTake)
 {
 	return DamageToTake.IsHealing();
 }
 
-FORCEINLINE bool UJuicyDamageLibrary::HasAnyEffectToTake(const FJuicyTakeDamage& DamageToTake, const float Tolerance)
+bool UJuicyDamageLibrary::HasAnyDamageToTake(const FJuicyTakeDamage& DamageToTake, const float Tolerance)
 {
 	return DamageToTake.HasAnyEffect(Tolerance);
+}
+
+float UJuicyDamageLibrary::ProcessResistance(const FJuicyDamageResistance& DamageResistance,
+                                             const FJuicyTakeDamage& DamageToTake)
+{
+	return DamageResistance.ProcessDamage(DamageToTake);
+}
+
+bool UJuicyDamageLibrary::CanProcessResistance(const FJuicyDamageResistance& DamageResistance,
+                                               const FJuicyTakeDamage& DamageToTake)
+{
+	return DamageResistance.CanProcessDamage(DamageToTake);
+}
+
+bool UJuicyDamageLibrary::HasAnyResistance(const FJuicyDamageResistance& DamageResistance)
+{
+	return DamageResistance.HasAnyEffect();
+}
+
+bool UJuicyDamageLibrary::IsResistantToDamage(const FJuicyDamageResistance& DamageResistance)
+{
+	return DamageResistance.IsResistantToDamage();
+}
+
+bool UJuicyDamageLibrary::IsWeakToDamage(const FJuicyDamageResistance& DamageResistance)
+{
+	return DamageResistance.IsWeakToDamage();
+}
+
+bool UJuicyDamageLibrary::IsImmuneToDamage(const FJuicyDamageResistance& DamageResistance)
+{
+	return DamageResistance.IsImmuneToDamage();
+}
+
+bool UJuicyDamageLibrary::CanHealFromDamage(const FJuicyDamageResistance& DamageResistance)
+{
+	return DamageResistance.CanHealFromDamage();
 }
