@@ -10,6 +10,7 @@ class ICYMOONEXPLORER_API UJuicyDamageLibrary final : public UBlueprintFunctionL
 {
 	GENERATED_BODY()
 
+public:
 	UFUNCTION(BlueprintPure, Category="Deal Damage")
 	static bool IsDealingHeal(const FJuicyDealDamage& DamageToDeal);
 
@@ -25,6 +26,10 @@ class ICYMOONEXPLORER_API UJuicyDamageLibrary final : public UBlueprintFunctionL
 	UFUNCTION(BlueprintPure, Category="Damage Resistance")
 	static float ProcessResistance(const FJuicyDamageResistance& DamageResistance,
 	                               const FJuicyTakeDamage& DamageToTake);
+
+	UFUNCTION(BlueprintPure, Category="Damage Resistance")
+	static float ProcessResistances(const TArray<FJuicyDamageResistance>& DamageResistances,
+	                                const FJuicyTakeDamage& DamageToTake);
 
 	UFUNCTION(BlueprintPure, Category="Damage Resistance")
 	static bool CanProcessResistance(const FJuicyDamageResistance& DamageResistance,

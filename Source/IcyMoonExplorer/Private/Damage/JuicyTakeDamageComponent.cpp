@@ -1,6 +1,7 @@
 ﻿#include "Damage/JuicyTakeDamageComponent.h"
 
 #include "Kismet/KismetMathLibrary.h"
+#include "Damage/JuicyDamageLibrary.h"
 
 UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -11,6 +12,7 @@ UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& O
 	Health = MaxHealth;
 	TakeDamageCooldown = 0.5f;
 	bCanTakeDamageFromSelf = true;
+	bProcessResistancesAutomatically = true;
 	bCanEverRevive = false;
 	ReviveHealth = MaxHealth;
 }
@@ -131,12 +133,13 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		const auto DamageToTake = FJuicyTakeDamage{
+		auto DamageToTake = FJuicyTakeDamage{
 			.Damage = Damage,
 			.DamageType = DamageType,
 			.DamageDealer = DamageCauser,
 			.InstigatedBy = InstigatedBy,
 		};
+		ProcessResistancesAutomatically(DamageToTake);
 		OnTryTakingAnyDamage.Broadcast(DamageToTake);
 	}
 }
@@ -159,12 +162,13 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		const auto DamageToTake = FJuicyTakeDamage{
+		auto DamageToTake = FJuicyTakeDamage{
 			.Damage = Damage,
 			.DamageType = DamageType,
 			.DamageDealer = DamageCauser,
 			.InstigatedBy = InstigatedBy,
 		};
+		ProcessResistancesAutomatically(DamageToTake);
 		OnTryTakingPointDamage.Broadcast(DamageToTake, HitLocation, FHitComponent, BoneName, ShotFromDirection);
 	}
 }
@@ -182,12 +186,13 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		const auto DamageToTake = FJuicyTakeDamage{
+		auto DamageToTake = FJuicyTakeDamage{
 			.Damage = Damage,
 			.DamageType = DamageType,
 			.DamageDealer = DamageCauser,
 			.InstigatedBy = InstigatedBy,
 		};
+		ProcessResistancesAutomatically(DamageToTake);
 		OnTryTakingRadialDamage.Broadcast(DamageToTake, Origin, HitInfo);
 	}
 }
@@ -213,6 +218,16 @@ bool UJuicyTakeDamageComponent::CanTakeDamageDelegatedFromOwner(
 void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)
 {
 	Health = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
+}
+
+void UJuicyTakeDamageComponent::ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake) const
+{
+	if (!bProcessResistancesAutomatically)
+	{
+		return;
+	}
+	const float ProcessedDamage = UJuicyDamageLibrary::ProcessResistances(DamageResistances, DamageToTake);
+	DamageToTake.Damage = ProcessedDamage;
 }
 
 void UJuicyTakeDamageComponent::StartTakeDamageCooldown()

@@ -26,6 +26,18 @@ float UJuicyDamageLibrary::ProcessResistance(const FJuicyDamageResistance& Damag
 	return DamageResistance.ProcessDamage(DamageToTake);
 }
 
+float UJuicyDamageLibrary::ProcessResistances(const TArray<FJuicyDamageResistance>& DamageResistances,
+                                              const FJuicyTakeDamage& DamageToTake)
+{
+	FJuicyTakeDamage DamageToProcess = DamageToTake;
+	for (const auto& DamageResistance : DamageResistances)
+	{
+		const float ProcessedDamage = DamageResistance.ProcessDamage(DamageToProcess);
+		DamageToProcess.Damage = ProcessedDamage;
+	}
+	return DamageToProcess.Damage;
+}
+
 bool UJuicyDamageLibrary::CanProcessResistance(const FJuicyDamageResistance& DamageResistance,
                                                const FJuicyTakeDamage& DamageToTake)
 {

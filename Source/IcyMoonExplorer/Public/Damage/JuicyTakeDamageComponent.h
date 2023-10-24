@@ -67,10 +67,6 @@ public:
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnReviveSignature OnRevive;
 
-	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite,
-		meta=(DisplayAfter=bCanTakeDamageFromSelf))
-	TArray<FJuicyDamageResistance> DamageResistances;
-
 	explicit UJuicyTakeDamageComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -103,16 +99,16 @@ public:
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	float GetUnsafeHealthPercentage() const;
 
-	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage|Revive")
 	float GetReviveHealth() const;
 
-	UFUNCTION(BlueprintCallable, Category="Components|Take Damage")
+	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
 	void SetReviveHealth(float NewReviveHealth);
 
-	UFUNCTION(BlueprintCallable, Category="Components|Take Damage")
+	UFUNCTION(BlueprintCallable, Category="Components|Take Damage|Revive")
 	void Revive();
 
-	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage|Revive")
 	bool CanRevive() const;
 
 protected:
@@ -126,6 +122,7 @@ protected:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
 	float MaxHealth;
 
+public:
 	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
 	float TakeDamageCooldown;
@@ -133,10 +130,17 @@ protected:
 	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanTakeDamageFromSelf : 1;
 
-	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Take Damage: Resistance", EditAnywhere, BlueprintReadWrite)
+	TArray<FJuicyDamageResistance> DamageResistances;
+
+	UPROPERTY(Category="Take Damage: Resistance", EditAnywhere, BlueprintReadWrite)
+	uint8 bProcessResistancesAutomatically : 1;
+
+	UPROPERTY(Category="Take Damage: Revive", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanEverRevive : 1;
 
-	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere,
+protected:
+	UPROPERTY(Category="Take Damage: Revive", EditAnywhere,
 		BlueprintGetter=GetReviveHealth, BlueprintSetter=SetReviveHealth,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
 	float ReviveHealth;
@@ -161,6 +165,7 @@ private:
 	bool CanTakeDamageDelegatedFromOwner(AActor* DamagedActor, AActor* DamageCauser) const;
 
 	void SetHealthRaw(float NewHealth);
+	void ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake) const;
 
 	void StartTakeDamageCooldown();
 	void EndTakeDamageCooldown();
