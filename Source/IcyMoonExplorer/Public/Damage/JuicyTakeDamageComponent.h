@@ -37,7 +37,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReviveSignature);
 
-UCLASS(ClassGroup=(Damage), meta=(BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup=(Damage), meta=(BlueprintSpawnableComponent))
 class ICYMOONEXPLORER_API UJuicyTakeDamageComponent : public UActorComponent
 {
 	GENERATED_BODY()

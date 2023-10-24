@@ -4,7 +4,7 @@
 #include "JuicyDealDamage.h"
 #include "JuicyDealDamageComponent.generated.h"
 
-UCLASS(ClassGroup=(Damage), meta=(BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup=(Damage), meta=(BlueprintSpawnableComponent))
 class ICYMOONEXPLORER_API UJuicyDealDamageComponent : public UActorComponent
 {
 	GENERATED_BODY()
