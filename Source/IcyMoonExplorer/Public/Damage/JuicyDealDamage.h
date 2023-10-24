@@ -4,7 +4,7 @@
 #include "JuicyDealDamage.generated.h"
 
 USTRUCT(BlueprintType)
-struct FJuicyDealDamage
+struct FJuicyDealDamage final
 {
 	GENERATED_BODY()
 
@@ -13,4 +13,8 @@ struct FJuicyDealDamage
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Deal Damage")
 	TSubclassOf<UDamageType> DamageTypeClass;
+
+	bool IsHealing() const;
+
+	bool HasAnyEffect(float Tolerance = UE_KINDA_SMALL_NUMBER) const;
 };

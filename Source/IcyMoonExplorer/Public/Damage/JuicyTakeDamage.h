@@ -4,7 +4,7 @@
 #include "JuicyTakeDamage.generated.h"
 
 USTRUCT(BlueprintType)
-struct FJuicyTakeDamage
+struct FJuicyTakeDamage final
 {
 	GENERATED_BODY()
 
@@ -19,4 +19,8 @@ struct FJuicyTakeDamage
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Take Damage")
 	TObjectPtr<AController> InstigatedBy;
+
+	bool IsHealing() const;
+
+	bool HasAnyEffect(float Tolerance = UE_KINDA_SMALL_NUMBER) const;
 };
