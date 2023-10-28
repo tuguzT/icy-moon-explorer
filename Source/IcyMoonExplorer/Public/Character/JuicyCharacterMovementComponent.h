@@ -21,8 +21,15 @@ public:
 	float SlideFriction;
 
 	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationSliding;
+
+	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
 	float SlideHalfHeight;
+
+	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanSlideOffLedges : 1;
 
 	UPROPERTY(Category="Character Movement: Dashing", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
@@ -65,6 +72,10 @@ public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual bool CanAttemptJump() const override;
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+	virtual bool IsMovingOnGround() const override;
+	virtual float GetMaxSpeed() const override;
+	virtual float GetMaxBrakingDeceleration() const override;
+	virtual bool CanWalkOffLedges() const override;
 
 protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;

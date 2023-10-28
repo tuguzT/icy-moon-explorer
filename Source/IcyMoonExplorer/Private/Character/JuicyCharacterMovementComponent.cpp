@@ -24,7 +24,7 @@ namespace Detail
 	constexpr uint8 NewCustomModeWithPrefix(const EJuicyCharacterMovementMode MovementMode,
 	                                        const uint8 NewCustomMode)
 	{
-		const auto Prefix = PrefixForMovementMode(MovementMode);
+		const uint8 Prefix = PrefixForMovementMode(MovementMode);
 		const auto MovementModeRaw = static_cast<uint8>(MovementMode);
 		return MovementModeRaw + Prefix + NewCustomMode;
 	}
@@ -44,12 +44,14 @@ namespace Detail
 UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	MaxSlideSpeed = 900.0f;
-	SlideFriction = 2.0f;
-	SlideHalfHeight = 30.0f;
+	MaxSlideSpeed = MaxWalkSpeed * 2.0f;
+	SlideFriction = GroundFriction;
+	BrakingDecelerationSliding = BrakingDecelerationWalking;
+	SlideHalfHeight = GetCrouchedHalfHeight();
+	bCanSlideOffLedges = bCanWalkOffLedges;
 	bWantsToSlide = false;
 
-	DashImpulse = 1200.0f;
+	DashImpulse = MaxWalkSpeed * 3.0f;
 	DashDuration = 0.5f;
 	DashCooldown = 1.0f;
 	bWantsToDash = false;
@@ -69,14 +71,14 @@ void UJuicyCharacterMovementComponent::SetMovementMode(const EMovementMode NewMo
 void UJuicyCharacterMovementComponent::SetMovementMode(const EJuicyCharacterMovementMode NewMovementMode,
                                                        const uint8 NewCustomMode)
 {
-	const auto CustomMode = Detail::NewCustomModeWithPrefix(NewMovementMode, NewCustomMode);
+	const uint8 CustomMode = Detail::NewCustomModeWithPrefix(NewMovementMode, NewCustomMode);
 	Super::SetMovementMode(MOVE_Custom, CustomMode);
 }
 
 bool UJuicyCharacterMovementComponent::IsMovementMode(const EJuicyCharacterMovementMode IsMovementMode,
                                                       const uint8 NewCustomMode) const
 {
-	const auto CustomMode = Detail::NewCustomModeWithPrefix(IsMovementMode, NewCustomMode);
+	const uint8 CustomMode = Detail::NewCustomModeWithPrefix(IsMovementMode, NewCustomMode);
 	return MovementMode == MOVE_Custom && CustomMovementMode == CustomMode;
 }
 
@@ -192,6 +194,57 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
+bool UJuicyCharacterMovementComponent::IsMovingOnGround() const
+{
+	const bool bSuitableMode = MovementMode == MOVE_Walking
+		|| MovementMode == MOVE_NavWalking
+		|| IsSliding();
+	return bSuitableMode && UpdatedComponent;
+}
+
+float UJuicyCharacterMovementComponent::GetMaxSpeed() const
+{
+	if (MOVE_Custom != MovementMode)
+	{
+		return Super::GetMaxSpeed();
+	}
+
+	switch (CustomMovementMode)
+	{
+	case Detail::SlideMode:
+		return MaxSlideSpeed;
+	case Detail::CustomMode:
+		return MaxCustomMovementSpeed;
+	default:
+		return 0.0f;
+	}
+}
+
+float UJuicyCharacterMovementComponent::GetMaxBrakingDeceleration() const
+{
+	if (MOVE_Custom != MovementMode)
+	{
+		return Super::GetMaxBrakingDeceleration();
+	}
+
+	switch (CustomMovementMode)
+	{
+	case Detail::SlideMode:
+		return BrakingDecelerationSliding;
+	default:
+		return 0.0f;
+	}
+}
+
+bool UJuicyCharacterMovementComponent::CanWalkOffLedges() const
+{
+	if (IsSliding())
+	{
+		return bCanSlideOffLedges;
+	}
+	return Super::CanWalkOffLedges();
+}
+
 void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const int32 Iterations)
 {
 	Super::PhysCustom(DeltaTime, Iterations);
@@ -204,15 +257,13 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 		PhysSlide(DeltaTime, Iterations);
 		break;
 	case Detail::CustomMode:
-		// By doing this, user can fall back to custom implementation
-		// (of course, with Super call)
+		// user can fall back to custom implementation
 		break;
 	default:
 		UE_LOG(LogJuicyCharacterMovement, Warning, TEXT("%s has unsupported movement mode %d"),
 		       *GetJuicyCharacterOwner()->GetName(),
 		       static_cast<int32>(CustomMovementMode))
 		Super::SetMovementMode(MOVE_None);
-		break;
 	}
 }
 
@@ -223,8 +274,6 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 		return;
 	}
 
-	RestorePreAdditiveRootMotionVelocity();
-
 	if (!CanSlideInCurrentState())
 	{
 		UnSlide();
@@ -232,43 +281,210 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 		return;
 	}
 
-	// Apply gravity
-	Velocity += FVector::DownVector * DeltaTime * GravityScale;
-
-	// Apply acceleration
-	Velocity += Acceleration.GetSafeNormal2D() * MaxSlideSpeed;
-	if (!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
-	{
-		CalcVelocity(DeltaTime, SlideFriction, true, GetMaxBrakingDeceleration());
-	}
-	ApplyRootMotionToVelocity(DeltaTime);
-
-	// Actual sliding implementation
-	Iterations++;
 	bJustTeleported = false;
+	bool bCheckedFall = false;
+	bool bTriedLedgeMove = false;
+	float RemainingTime = DeltaTime;
 
-	constexpr float HitTime = 1.0f;
-	FHitResult Hit(HitTime);
-	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
-	const FVector Adjusted = Velocity * DeltaTime;
-	FHitResult SurfaceHit;
-	const FVector SurfaceNormal = GetSlideSurface(SurfaceHit) ? SurfaceHit.Normal : FVector::UpVector;
-	const FVector VelocityPlaneDirection = FVector::VectorPlaneProject(Velocity, SurfaceNormal).GetSafeNormal();
-	const FQuat NewRotation = FRotationMatrix::MakeFromXZ(VelocityPlaneDirection, SurfaceNormal).ToQuat();
-	SafeMoveUpdatedComponent(Adjusted, NewRotation, true, Hit);
-
-	// Slide along surface if we hit the wall
-	if (Hit.Time < HitTime)
+	// Perform the move
+	while (RemainingTime >= MIN_TICK_TIME && Iterations < MaxSimulationIterations && CharacterOwner
+		&& (CharacterOwner->Controller || bRunPhysicsWithNoController || HasAnimRootMotion()
+			|| CurrentRootMotion.HasOverrideVelocity() || CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy))
 	{
-		HandleImpact(Hit, DeltaTime, Adjusted);
-		SlideAlongSurface(Adjusted, HitTime - Hit.Time, Hit.Normal, Hit, true);
+		Iterations++;
+		bJustTeleported = false;
+		const float TimeTick = GetSimulationTimeStep(RemainingTime, Iterations);
+		RemainingTime -= TimeTick;
+
+		// Save current values
+		UPrimitiveComponent* const OldBase = GetMovementBase();
+		const FVector PreviousBaseLocation = OldBase != nullptr ? OldBase->GetComponentLocation() : FVector::ZeroVector;
+		const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+		const FFindFloorResult OldFloor = CurrentFloor;
+
+		// Ensure velocity is horizontal.
+		MaintainHorizontalGroundVelocity();
+		const FVector OldVelocity = Velocity;
+
+		Velocity += GetGravityDirection() * TimeTick;
+		Acceleration = FVector::VectorPlaneProject(Acceleration, -GetGravityDirection());
+
+		// Apply acceleration
+		if (!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
+		{
+			CalcVelocity(TimeTick, SlideFriction, false, GetMaxBrakingDeceleration());
+		}
+
+		ApplyRootMotionToVelocity(TimeTick);
+
+		if (IsFalling())
+		{
+			// Root motion could have put us into Falling.
+			// No movement has taken place this movement tick so we pass on full time/past iteration count
+			StartNewPhysics(RemainingTime + TimeTick, Iterations - 1);
+			return;
+		}
+
+		// Compute move parameters
+		const FVector MoveVelocity = Velocity;
+		const FVector Delta = TimeTick * MoveVelocity;
+		const bool bZeroDelta = Delta.IsNearlyZero();
+		FStepDownResult StepDownResult;
+
+		if (bZeroDelta)
+		{
+			RemainingTime = 0.0f;
+		}
+		else
+		{
+			// try to move forward
+			MoveAlongFloor(MoveVelocity, TimeTick, &StepDownResult);
+
+			if (IsFalling())
+			{
+				// pawn decided to jump up
+				if (const float DesiredDist = Delta.Size(); DesiredDist > UE_KINDA_SMALL_NUMBER)
+				{
+					const float ActualDist = (UpdatedComponent->GetComponentLocation() - OldLocation).Size2D();
+					RemainingTime += TimeTick * (1.0f - FMath::Min(1.0f, ActualDist / DesiredDist));
+				}
+				StartNewPhysics(RemainingTime, Iterations);
+				return;
+			}
+			// just entered water
+			if (IsSwimming())
+			{
+				StartSwimming(OldLocation, OldVelocity, TimeTick, RemainingTime, Iterations);
+				return;
+			}
+		}
+
+		// Update floor.
+		// StepUp might have already done it for us.
+		if (StepDownResult.bComputedFloor)
+		{
+			CurrentFloor = StepDownResult.FloorResult;
+		}
+		else
+		{
+			FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, bZeroDelta, nullptr);
+		}
+
+		// check for ledges here
+		if (const bool bCheckLedges = !CanWalkOffLedges();
+			bCheckLedges && !CurrentFloor.IsWalkableFloor())
+		{
+			// calculate possible alternate movement
+			const FVector GravDir = GetGravityDirection();
+			if (const FVector NewDelta = bTriedLedgeMove
+				                             ? FVector::ZeroVector
+				                             : GetLedgeMove(OldLocation, Delta, GravDir);
+				!NewDelta.IsZero())
+			{
+				// first revert this move
+				RevertMove(OldLocation, OldBase, PreviousBaseLocation, OldFloor, false);
+
+				// avoid repeated ledge moves if the first one fails
+				bTriedLedgeMove = true;
+
+				// Try new movement direction
+				Velocity = NewDelta / TimeTick;
+				RemainingTime += TimeTick;
+				continue;
+			}
+			else
+			{
+				// see if it is OK to jump
+				if (bool bMustJump = bZeroDelta
+						|| (OldBase == nullptr
+							|| (!OldBase->IsQueryCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
+					(bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation,
+					                                          RemainingTime, TimeTick, Iterations, bMustJump))
+				{
+					return;
+				}
+				bCheckedFall = true;
+
+				// revert this move
+				RevertMove(OldLocation, OldBase, PreviousBaseLocation, OldFloor, true);
+				RemainingTime = 0.0f;
+				break;
+			}
+		}
+		else
+		{
+			// Validate the floor check
+			if (CurrentFloor.IsWalkableFloor())
+			{
+				if (ShouldCatchAir(OldFloor, CurrentFloor))
+				{
+					HandleWalkingOffLedge(OldFloor.HitResult.ImpactNormal, OldFloor.HitResult.Normal,
+					                      OldLocation, TimeTick);
+					if (IsMovingOnGround())
+					{
+						// If still walking, then fall. If not, assume the user set a different mode they want to keep.
+						StartFalling(Iterations, RemainingTime, TimeTick, Delta, OldLocation);
+					}
+					return;
+				}
+
+				AdjustFloorHeight();
+				SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
+			}
+			else if (CurrentFloor.HitResult.bStartPenetrating && RemainingTime <= 0.0f)
+			{
+				// The floor check failed because it started in penetration
+				// We do not want to try to move downward because the downward sweep failed, rather we'd like to try to pop out of the floor.
+				FHitResult Hit(CurrentFloor.HitResult);
+				Hit.TraceEnd = Hit.TraceStart + FVector(0.0f, 0.0f, MAX_FLOOR_DIST);
+				const FVector RequestedAdjustment = GetPenetrationAdjustment(Hit);
+				ResolvePenetration(RequestedAdjustment, Hit, UpdatedComponent->GetComponentQuat());
+				bForceNextFloorCheck = true;
+			}
+
+			// check if just entered water
+			if (IsSwimming())
+			{
+				StartSwimming(OldLocation, Velocity, TimeTick, RemainingTime, Iterations);
+				return;
+			}
+
+			// See if we need to start falling.
+			if (!CurrentFloor.IsWalkableFloor() && !CurrentFloor.HitResult.bStartPenetrating)
+			{
+				if (const bool bMustJump = bJustTeleported || bZeroDelta
+						|| (OldBase == nullptr
+							|| (!OldBase->IsQueryCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
+					(bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation,
+					                                          RemainingTime, TimeTick, Iterations, bMustJump))
+				{
+					return;
+				}
+				bCheckedFall = true;
+			}
+		}
+
+		// Allow overlap events and such to change physics state and velocity
+		if (IsMovingOnGround())
+		{
+			// Make velocity reflect actual move
+			if (!bJustTeleported && !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity()
+				&& TimeTick >= MIN_TICK_TIME)
+			{
+				Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / TimeTick;
+				MaintainHorizontalGroundVelocity();
+			}
+		}
+
+		// If we didn't move at all this iteration then abort (since future iterations will also be stuck).
+		if (UpdatedComponent->GetComponentLocation() == OldLocation)
+		{
+			RemainingTime = 0.0f;
+			break;
+		}
 	}
 
-	// Update velocity accordingly to possible wall hit
-	if (!bJustTeleported && !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
-	{
-		Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / DeltaTime;
-	}
+	ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
 }
 
 void UJuicyCharacterMovementComponent::UpdateFromCompressedFlags(const uint8 Flags)
