@@ -63,18 +63,16 @@ public:
 	virtual bool CanDashInCurrentState() const;
 
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
-	virtual bool IsMovingOnGround() const override;
+	virtual bool CanAttemptJump() const override;
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 
 protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
-	virtual void PhysJuicyCustom(float DeltaTime, int32 Iterations);
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
 	                               const FVector& OldVelocity) override;
-	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
-	virtual bool CanAttemptJump() const override;
 
 private:
 	FTimerHandle TimerHandleForDashDuration;

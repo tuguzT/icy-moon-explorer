@@ -111,7 +111,7 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
-	return HasInput() && IsMovingOnGround();
+	return HasInput() && (IsMovingOnGround() || IsSliding());
 }
 
 void UJuicyCharacterMovementComponent::Dash()
@@ -161,12 +161,35 @@ FNetworkPredictionData_Client* UJuicyCharacterMovementComponent::GetPredictionDa
 	return ClientPredictionData;
 }
 
-bool UJuicyCharacterMovementComponent::IsMovingOnGround() const
+bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 {
-	const bool IsAllowedMode = MovementMode == MOVE_Walking
-		|| MovementMode == MOVE_NavWalking
-		|| IsSliding();
-	return IsAllowedMode && UpdatedComponent;
+	return Super::CanAttemptJump()
+		&& !IsSliding()
+		&& !IsDashing();
+}
+
+void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
+{
+	// Check for a change in sliding state.
+	// Players toggle sliding by changing bWantsToSlide.
+	if (const bool bIsSliding = IsSliding();
+		bIsSliding && (!bWantsToSlide || !CanSlideInCurrentState()))
+	{
+		UnSlide();
+	}
+	else if (!bIsSliding && bWantsToSlide && CanSlideInCurrentState())
+	{
+		Slide();
+	}
+
+	// Check for a change in dashing state.
+	// Players toggle sliding by changing bWantsToDash.
+	if (bWantsToDash && CanDashInCurrentState())
+	{
+		Dash();
+	}
+
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
 void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const int32 Iterations)
@@ -181,7 +204,8 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 		PhysSlide(DeltaTime, Iterations);
 		break;
 	case Detail::CustomMode:
-		PhysJuicyCustom(DeltaTime, Iterations);
+		// By doing this, user can fall back to custom implementation
+		// (of course, with Super call)
 		break;
 	default:
 		UE_LOG(LogJuicyCharacterMovement, Warning, TEXT("%s has unsupported movement mode %d"),
@@ -190,11 +214,6 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 		Super::SetMovementMode(MOVE_None);
 		break;
 	}
-}
-
-void UJuicyCharacterMovementComponent::PhysJuicyCustom(float DeltaTime, int32 Iterations)
-{
-	// to be implemented by derived class
 }
 
 void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 Iterations)
@@ -206,9 +225,7 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 
 	RestorePreAdditiveRootMotionVelocity();
 
-	// Check if any surface is underneath us and if we can actually slide
-	FHitResult SurfaceHit;
-	if (!GetSlideSurface(SurfaceHit) || !CanSlideInCurrentState())
+	if (!CanSlideInCurrentState())
 	{
 		UnSlide();
 		StartNewPhysics(DeltaTime, Iterations);
@@ -234,7 +251,8 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 	FHitResult Hit(HitTime);
 	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 	const FVector Adjusted = Velocity * DeltaTime;
-	const FVector SurfaceNormal = SurfaceHit.Normal;
+	FHitResult SurfaceHit;
+	const FVector SurfaceNormal = GetSlideSurface(SurfaceHit) ? SurfaceHit.Normal : FVector::UpVector;
 	const FVector VelocityPlaneDirection = FVector::VectorPlaneProject(Velocity, SurfaceNormal).GetSafeNormal();
 	const FQuat NewRotation = FRotationMatrix::MakeFromXZ(VelocityPlaneDirection, SurfaceNormal).ToQuat();
 	SafeMoveUpdatedComponent(Adjusted, NewRotation, true, Hit);
@@ -262,37 +280,6 @@ void UJuicyCharacterMovementComponent::OnMovementUpdated(const float DeltaSecond
                                                          const FVector& OldVelocity)
 {
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
-}
-
-void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
-{
-	// Check for a change in sliding state.
-	// Players toggle sliding by changing bWantsToSlide.
-	if (const bool bIsSliding = IsSliding();
-		bIsSliding && (!bWantsToSlide || !CanSlideInCurrentState()))
-	{
-		UnSlide();
-	}
-	else if (!bIsSliding && bWantsToSlide && CanSlideInCurrentState())
-	{
-		Slide();
-	}
-
-	// Check for a change in dashing state.
-	// Players toggle sliding by changing bWantsToDash.
-	if (bWantsToDash && CanDashInCurrentState())
-	{
-		Dash();
-	}
-
-	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
-}
-
-bool UJuicyCharacterMovementComponent::CanAttemptJump() const
-{
-	return Super::CanAttemptJump()
-		&& !IsSliding()
-		&& !IsDashing();
 }
 
 bool UJuicyCharacterMovementComponent::HasInput() const
