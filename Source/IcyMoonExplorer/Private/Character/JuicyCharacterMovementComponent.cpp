@@ -28,17 +28,6 @@ namespace Detail
 		const auto MovementModeRaw = static_cast<uint8>(MovementMode);
 		return MovementModeRaw + Prefix + NewCustomMode;
 	}
-
-	FCollisionQueryParams CollisionQueryParamsForSliding(const AActor* Actor)
-	{
-		TArray<AActor*> ChildActors;
-		Actor->GetAllChildActors(ChildActors);
-
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActors(ChildActors);
-		Params.AddIgnoredActor(Actor);
-		return Params;
-	}
 }
 
 UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
@@ -57,7 +46,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	bWantsToDash = false;
 }
 
-FORCEINLINE AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
+AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
 {
 	return Cast<AJuicyCharacter>(GetCharacterOwner());
 }
@@ -113,7 +102,7 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
-	return HasInput() && (IsMovingOnGround() || IsSliding());
+	return HasInput() && IsMovingOnGround();
 }
 
 void UJuicyCharacterMovementComponent::Dash()
@@ -392,76 +381,70 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 				RemainingTime += TimeTick;
 				continue;
 			}
-			else
-			{
-				// see if it is OK to jump
-				if (bool bMustJump = bZeroDelta
-						|| (OldBase == nullptr
-							|| (!OldBase->IsQueryCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
-					(bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation,
-					                                          RemainingTime, TimeTick, Iterations, bMustJump))
-				{
-					return;
-				}
-				bCheckedFall = true;
 
-				// revert this move
-				RevertMove(OldLocation, OldBase, PreviousBaseLocation, OldFloor, true);
-				RemainingTime = 0.0f;
-				break;
+			// see if it is OK to jump
+			if (bool bMustJump = bZeroDelta || (OldBase == nullptr
+					|| (!OldBase->IsQueryCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
+				(bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation,
+				                                          RemainingTime, TimeTick, Iterations, bMustJump))
+			{
+				return;
 			}
+			bCheckedFall = true;
+
+			// revert this move
+			RevertMove(OldLocation, OldBase, PreviousBaseLocation, OldFloor, true);
+			RemainingTime = 0.0f;
+			break;
 		}
-		else
+
+		// Validate the floor check
+		if (CurrentFloor.IsWalkableFloor())
 		{
-			// Validate the floor check
-			if (CurrentFloor.IsWalkableFloor())
+			if (ShouldCatchAir(OldFloor, CurrentFloor))
 			{
-				if (ShouldCatchAir(OldFloor, CurrentFloor))
+				HandleWalkingOffLedge(OldFloor.HitResult.ImpactNormal, OldFloor.HitResult.Normal,
+				                      OldLocation, TimeTick);
+				if (IsMovingOnGround())
 				{
-					HandleWalkingOffLedge(OldFloor.HitResult.ImpactNormal, OldFloor.HitResult.Normal,
-					                      OldLocation, TimeTick);
-					if (IsMovingOnGround())
-					{
-						// If still walking, then fall. If not, assume the user set a different mode they want to keep.
-						StartFalling(Iterations, RemainingTime, TimeTick, Delta, OldLocation);
-					}
-					return;
+					// If still walking, then fall. If not, assume the user set a different mode they want to keep.
+					StartFalling(Iterations, RemainingTime, TimeTick, Delta, OldLocation);
 				}
-
-				AdjustFloorHeight();
-				SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
-			}
-			else if (CurrentFloor.HitResult.bStartPenetrating && RemainingTime <= 0.0f)
-			{
-				// The floor check failed because it started in penetration
-				// We do not want to try to move downward because the downward sweep failed, rather we'd like to try to pop out of the floor.
-				FHitResult Hit(CurrentFloor.HitResult);
-				Hit.TraceEnd = Hit.TraceStart + FVector(0.0f, 0.0f, MAX_FLOOR_DIST);
-				const FVector RequestedAdjustment = GetPenetrationAdjustment(Hit);
-				ResolvePenetration(RequestedAdjustment, Hit, UpdatedComponent->GetComponentQuat());
-				bForceNextFloorCheck = true;
-			}
-
-			// check if just entered water
-			if (IsSwimming())
-			{
-				StartSwimming(OldLocation, Velocity, TimeTick, RemainingTime, Iterations);
 				return;
 			}
 
-			// See if we need to start falling.
-			if (!CurrentFloor.IsWalkableFloor() && !CurrentFloor.HitResult.bStartPenetrating)
+			AdjustFloorHeight();
+			SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
+		}
+		else if (CurrentFloor.HitResult.bStartPenetrating && RemainingTime <= 0.0f)
+		{
+			// The floor check failed because it started in penetration
+			// We do not want to try to move downward because the downward sweep failed, rather we'd like to try to pop out of the floor.
+			FHitResult Hit(CurrentFloor.HitResult);
+			Hit.TraceEnd = Hit.TraceStart + FVector(0.0f, 0.0f, MAX_FLOOR_DIST);
+			const FVector RequestedAdjustment = GetPenetrationAdjustment(Hit);
+			ResolvePenetration(RequestedAdjustment, Hit, UpdatedComponent->GetComponentQuat());
+			bForceNextFloorCheck = true;
+		}
+
+		// check if just entered water
+		if (IsSwimming())
+		{
+			StartSwimming(OldLocation, Velocity, TimeTick, RemainingTime, Iterations);
+			return;
+		}
+
+		// See if we need to start falling.
+		if (!CurrentFloor.IsWalkableFloor() && !CurrentFloor.HitResult.bStartPenetrating)
+		{
+			if (const bool bMustJump = bJustTeleported || bZeroDelta || (OldBase == nullptr
+					|| (!OldBase->IsQueryCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
+				(bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation,
+				                                          RemainingTime, TimeTick, Iterations, bMustJump))
 			{
-				if (const bool bMustJump = bJustTeleported || bZeroDelta
-						|| (OldBase == nullptr
-							|| (!OldBase->IsQueryCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
-					(bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation,
-					                                          RemainingTime, TimeTick, Iterations, bMustJump))
-				{
-					return;
-				}
-				bCheckedFall = true;
+				return;
 			}
+			bCheckedFall = true;
 		}
 
 		// Allow overlap events and such to change physics state and velocity
@@ -508,16 +491,6 @@ void UJuicyCharacterMovementComponent::ResetCharacterRotation(const FVector& For
 	FHitResult OutHit;
 	const FQuat RestoredRotation = FRotationMatrix::MakeFromXZ(Forward, FVector::UpVector).ToQuat();
 	SafeMoveUpdatedComponent(FVector::ZeroVector, RestoredRotation, bSweep, OutHit);
-}
-
-bool UJuicyCharacterMovementComponent::GetSlideSurface(FHitResult& OutHit) const
-{
-	const float ScaledCapsuleHalfHeight = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	const FVector Start = UpdatedComponent->GetComponentLocation();
-	const FVector End = Start + ScaledCapsuleHalfHeight * 2.5f * FVector::DownVector;
-	const FName ProfileName = TEXT("BlockAll");
-	const FCollisionQueryParams Params = Detail::CollisionQueryParamsForSliding(CharacterOwner);
-	return GetWorld()->LineTraceSingleByProfile(OutHit, Start, End, ProfileName, Params);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst

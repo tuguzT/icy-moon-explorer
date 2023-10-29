@@ -93,7 +93,6 @@ private:
 	bool HasInput() const;
 	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
 
-	bool GetSlideSurface(FHitResult& OutHit) const;
 	void ChangeHalfHeightBeforeSliding();
 	void RestoreHalfHeightAfterSliding();
 
