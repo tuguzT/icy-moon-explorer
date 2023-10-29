@@ -250,6 +250,20 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 		return;
 	}
 
+	if (!CharacterOwner || (!CharacterOwner->Controller && !bRunPhysicsWithNoController && !HasAnimRootMotion()
+		&& !CurrentRootMotion.HasOverrideVelocity() && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy))
+	{
+		Acceleration = FVector::ZeroVector;
+		Velocity = FVector::ZeroVector;
+		return;
+	}
+
+	if (!UpdatedComponent->IsQueryCollisionEnabled())
+	{
+		SetMovementMode(MOVE_Walking);
+		return;
+	}
+
 	bJustTeleported = false;
 	bool bCheckedFall = false;
 	bool bTriedLedgeMove = false;
