@@ -2,7 +2,6 @@
 
 #include "Character/NetworkPredictionData_Client_JuicyCharacter.h"
 #include "Character/JuicyCharacter.h"
-#include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogJuicyCharacterMovement, Log, All);
 
@@ -33,10 +32,11 @@ namespace Detail
 UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	NavAgentProps.bCanCrouch = true;
+
 	MaxSlideSpeed = MaxWalkSpeed * 2.0f;
 	SlideFriction = GroundFriction;
 	BrakingDecelerationSliding = BrakingDecelerationWalking;
-	SlideHalfHeight = GetCrouchedHalfHeight();
 	bCanSlideOffLedges = bCanWalkOffLedges;
 	bWantsToSlide = false;
 
@@ -79,20 +79,13 @@ void UJuicyCharacterMovementComponent::Slide()
 	}
 
 	bWantsToSlide = true;
-	SetMovementMode(EJuicyCharacterMovementMode::Slide);
-	ChangeHalfHeightBeforeSliding();
-	GetJuicyCharacterOwner()->OnStartSlide();
+	bWantsToCrouch = true;
 }
 
 void UJuicyCharacterMovementComponent::UnSlide()
 {
-	const FVector Forward = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
-	ResetCharacterRotation(Forward, true);
-
 	bWantsToSlide = false;
-	Super::SetMovementMode(MOVE_Walking);
-	RestoreHalfHeightAfterSliding();
-	GetJuicyCharacterOwner()->OnEndSlide();
+	bWantsToCrouch = false;
 }
 
 bool UJuicyCharacterMovementComponent::IsSliding() const
@@ -108,11 +101,6 @@ bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 void UJuicyCharacterMovementComponent::Dash()
 {
 	bWantsToDash = true;
-
-	if (CanDashInCurrentState())
-	{
-		StartDash();
-	}
 }
 
 bool UJuicyCharacterMovementComponent::IsDashing() const
@@ -159,25 +147,23 @@ bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 		&& !IsDashing();
 }
 
+// ReSharper disable once CppTooWideScopeInitStatement
 void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
 {
-	// Check for a change in sliding state.
-	// Players toggle sliding by changing bWantsToSlide.
-	if (const bool bIsSliding = IsSliding();
-		bIsSliding && (!bWantsToSlide || !CanSlideInCurrentState()))
+	// Sliding
+	if (MovementMode == MOVE_Walking && bWantsToSlide && CanSlideInCurrentState())
 	{
-		UnSlide();
+		StartSlide();
 	}
-	else if (!bIsSliding && bWantsToSlide && CanSlideInCurrentState())
+	else if (IsSliding() && !bWantsToSlide)
 	{
-		Slide();
+		EndSlide();
 	}
 
-	// Check for a change in dashing state.
-	// Players toggle sliding by changing bWantsToDash.
+	// Dashing
 	if (bWantsToDash && CanDashInCurrentState())
 	{
-		Dash();
+		StartDash();
 	}
 
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -332,7 +318,8 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 			if (IsFalling())
 			{
 				// pawn decided to jump up
-				if (const float DesiredDist = Delta.Size(); DesiredDist > UE_KINDA_SMALL_NUMBER)
+				if (const float DesiredDist = Delta.Size();
+					DesiredDist > UE_KINDA_SMALL_NUMBER)
 				{
 					const float ActualDist = (UpdatedComponent->GetComponentLocation() - OldLocation).Size2D();
 					RemainingTime += TimeTick * (1.0f - FMath::Min(1.0f, ActualDist / DesiredDist));
@@ -467,7 +454,10 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 		}
 	}
 
-	ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
+	if (IsMovingOnGround())
+	{
+		MaintainHorizontalGroundVelocity();
+	}
 }
 
 void UJuicyCharacterMovementComponent::UpdateFromCompressedFlags(const uint8 Flags)
@@ -479,6 +469,23 @@ void UJuicyCharacterMovementComponent::OnMovementUpdated(const float DeltaSecond
                                                          const FVector& OldVelocity)
 {
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+}
+
+void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode PreviousMovementMode,
+                                                             const uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+
+	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::SlideMode)
+	{
+		UnSlide();
+	}
+
+	if (IsSliding())
+	{
+		Slide();
+		bCrouchMaintainsBaseLocation = true;
+	}
 }
 
 bool UJuicyCharacterMovementComponent::HasInput() const
@@ -493,24 +500,17 @@ void UJuicyCharacterMovementComponent::ResetCharacterRotation(const FVector& For
 	SafeMoveUpdatedComponent(FVector::ZeroVector, RestoredRotation, bSweep, OutHit);
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-void UJuicyCharacterMovementComponent::ChangeHalfHeightBeforeSliding()
+void UJuicyCharacterMovementComponent::StartSlide()
 {
-	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(SlideHalfHeight);
-	const FVector OldLocation = CharacterOwner->GetActorLocation();
-	CharacterOwner->SetActorLocation(OldLocation + FVector::DownVector * SlideHalfHeight);
+	SetMovementMode(EJuicyCharacterMovementMode::Slide);
+	GetJuicyCharacterOwner()->OnStartSlide();
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-void UJuicyCharacterMovementComponent::RestoreHalfHeightAfterSliding()
+void UJuicyCharacterMovementComponent::EndSlide()
 {
-	const auto* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<AJuicyCharacter>();
-	const auto* DefaultCapsule = DefaultCharacter->GetCapsuleComponent();
-	const float DefaultHalfHeight = DefaultCapsule->GetScaledCapsuleHalfHeight();
-
-	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultHalfHeight);
-	const FVector OldLocation = CharacterOwner->GetActorLocation();
-	CharacterOwner->SetActorLocation(OldLocation + FVector::UpVector * SlideHalfHeight);
+	Super::SetMovementMode(MOVE_Walking);
+	ResetCharacterRotation(UpdatedComponent->GetForwardVector().GetSafeNormal2D(), true);
+	GetJuicyCharacterOwner()->OnEndSlide();
 }
 
 void UJuicyCharacterMovementComponent::StartDash()

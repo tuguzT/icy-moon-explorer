@@ -24,10 +24,6 @@ public:
 		meta=(ClampMin="0", UIMin="0"))
 	float BrakingDecelerationSliding;
 
-	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
-	float SlideHalfHeight;
-
 	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanSlideOffLedges : 1;
 
@@ -84,6 +80,8 @@ protected:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
 	                               const FVector& OldVelocity) override;
+	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode,
+	                                   uint8 PreviousCustomMode) override;
 
 private:
 	FTimerHandle TimerHandleForDashDuration;
@@ -93,8 +91,8 @@ private:
 	bool HasInput() const;
 	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
 
-	void ChangeHalfHeightBeforeSliding();
-	void RestoreHalfHeightAfterSliding();
+	void StartSlide();
+	void EndSlide();
 
 	void StartDash();
 	void EndDash();
