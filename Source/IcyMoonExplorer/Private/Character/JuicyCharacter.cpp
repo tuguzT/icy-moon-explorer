@@ -107,7 +107,8 @@ bool AJuicyCharacter::IsCoyoteTime() const
 
 void AJuicyCharacter::OnMovementModeChanged(const EMovementMode PrevMovementMode, const uint8 PreviousCustomMode)
 {
-	if (JuicyCharacterMovement->IsFalling())
+	if (const bool bWasNotFlying = PrevMovementMode != MOVE_Flying;
+		bWasNotFlying && JuicyCharacterMovement->IsFalling())
 	{
 		StartCoyoteTime();
 	}

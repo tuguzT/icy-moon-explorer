@@ -95,6 +95,7 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
+	// const bool HasMinSpeed = Velocity.SquaredLength() >= FMath::Sqrt(MinSlideSpeed);
 	return HasInput() && IsMovingOnGround();
 }
 
@@ -147,15 +148,15 @@ bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 		&& !IsDashing();
 }
 
-// ReSharper disable once CppTooWideScopeInitStatement
 void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
 {
 	// Sliding
-	if (MovementMode == MOVE_Walking && bWantsToSlide && CanSlideInCurrentState())
+	if (const bool bIsWalking = MovementMode == MOVE_Walking || MovementMode == MOVE_NavWalking;
+		bIsWalking && bWantsToSlide && CanSlideInCurrentState())
 	{
 		StartSlide();
 	}
-	else if (IsSliding() && !bWantsToSlide)
+	else if (IsSliding() && (!bWantsToSlide || !CanSlideInCurrentState()))
 	{
 		EndSlide();
 	}
@@ -246,13 +247,6 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 {
 	if (DeltaTime < MIN_TICK_TIME)
 	{
-		return;
-	}
-
-	if (!CanSlideInCurrentState())
-	{
-		Super::SetMovementMode(MOVE_Walking);
-		StartNewPhysics(DeltaTime, Iterations);
 		return;
 	}
 
@@ -442,6 +436,10 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 				&& TimeTick >= MIN_TICK_TIME)
 			{
 				Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / TimeTick;
+				if (Velocity.IsZero())
+				{
+					Velocity = Acceleration.GetSafeNormal2D() * MaxSlideSpeed;
+				}
 				MaintainHorizontalGroundVelocity();
 			}
 		}
@@ -508,8 +506,10 @@ void UJuicyCharacterMovementComponent::StartSlide()
 
 void UJuicyCharacterMovementComponent::EndSlide()
 {
+	const FVector Forward = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
+	ResetCharacterRotation(Forward, true);
+
 	Super::SetMovementMode(MOVE_Walking);
-	ResetCharacterRotation(UpdatedComponent->GetForwardVector().GetSafeNormal2D(), true);
 	GetJuicyCharacterOwner()->OnEndSlide();
 }
 
@@ -520,7 +520,8 @@ void UJuicyCharacterMovementComponent::StartDash()
 		return;
 	}
 
-	CurrentDashDirection = (HasInput() ? Acceleration : UpdatedComponent->GetForwardVector()).GetSafeNormal2D();
+	CurrentDashDirection = HasInput() ? Acceleration : GetController()->GetControlRotation().Vector();
+	CurrentDashDirection = CurrentDashDirection.GetSafeNormal2D();
 	ResetCharacterRotation(CurrentDashDirection, false);
 	Super::SetMovementMode(MOVE_Flying);
 	Velocity = CurrentDashDirection * DashImpulse;
