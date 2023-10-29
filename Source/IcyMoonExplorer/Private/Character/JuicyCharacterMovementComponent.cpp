@@ -251,7 +251,7 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 
 	if (!CanSlideInCurrentState())
 	{
-		UnSlide();
+		Super::SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime, Iterations);
 		return;
 	}
