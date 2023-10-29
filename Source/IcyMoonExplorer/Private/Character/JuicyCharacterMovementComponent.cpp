@@ -151,8 +151,7 @@ bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
 {
 	// Sliding
-	if (const bool bIsWalking = MovementMode == MOVE_Walking || MovementMode == MOVE_NavWalking;
-		bIsWalking && bWantsToSlide && CanSlideInCurrentState())
+	if (!IsSliding() && bWantsToSlide && CanSlideInCurrentState())
 	{
 		StartSlide();
 	}
@@ -491,11 +490,13 @@ void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::SlideMode)
 	{
 		UnSlide();
+		GetJuicyCharacterOwner()->OnEndSlide();
 	}
 
 	if (IsSliding())
 	{
 		Slide();
+		GetJuicyCharacterOwner()->OnStartSlide();
 		bCrouchMaintainsBaseLocation = true;
 	}
 }
@@ -515,7 +516,6 @@ void UJuicyCharacterMovementComponent::ResetCharacterRotation(const FVector& For
 void UJuicyCharacterMovementComponent::StartSlide()
 {
 	SetMovementMode(EJuicyCharacterMovementMode::Slide);
-	GetJuicyCharacterOwner()->OnStartSlide();
 }
 
 void UJuicyCharacterMovementComponent::EndSlide()
@@ -524,7 +524,6 @@ void UJuicyCharacterMovementComponent::EndSlide()
 	ResetCharacterRotation(Forward, true);
 
 	Super::SetMovementMode(MOVE_Walking);
-	GetJuicyCharacterOwner()->OnEndSlide();
 }
 
 void UJuicyCharacterMovementComponent::StartDash()
