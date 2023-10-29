@@ -11,6 +11,10 @@ class ICYMOONEXPLORER_API AJuicyCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(Category=Character, EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	float CoyoteTime;
+
 	explicit AJuicyCharacter(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -65,7 +69,19 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndDashCooldown", ScriptName="OnEndDashCooldown"))
 	void K2_OnEndDashCooldown();
 
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsCoyoteTime() const;
+
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+	virtual bool CanJumpInternal_Implementation() const override;
+	virtual void Landed(const FHitResult& Hit) override;
+
 private:
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UJuicyCharacterMovementComponent> JuicyCharacterMovement;
+
+	FTimerHandle TimerHandleForCoyoteTime;
+
+	void StartCoyoteTime();
+	void EndCoyoteTime();
 };

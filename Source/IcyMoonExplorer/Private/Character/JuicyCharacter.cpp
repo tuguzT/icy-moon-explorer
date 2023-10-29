@@ -14,6 +14,8 @@ namespace Detail
 AJuicyCharacter::AJuicyCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(Detail::ReplaceCharacterMovement(ObjectInitializer))
 {
+	CoyoteTime = 0.0f;
+
 	JuicyCharacterMovement = Cast<UJuicyCharacterMovementComponent>(GetCharacterMovement());
 }
 
@@ -95,4 +97,50 @@ void AJuicyCharacter::OnStartDashCooldown()
 void AJuicyCharacter::OnEndDashCooldown()
 {
 	K2_OnEndDashCooldown();
+}
+
+bool AJuicyCharacter::IsCoyoteTime() const
+{
+	const FTimerManager& TimerManager = GetWorldTimerManager();
+	return TimerManager.IsTimerActive(TimerHandleForCoyoteTime);
+}
+
+void AJuicyCharacter::OnMovementModeChanged(const EMovementMode PrevMovementMode, const uint8 PreviousCustomMode)
+{
+	if (JuicyCharacterMovement->IsFalling())
+	{
+		StartCoyoteTime();
+	}
+
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+}
+
+bool AJuicyCharacter::CanJumpInternal_Implementation() const
+{
+	return Super::CanJumpInternal_Implementation() || IsCoyoteTime();
+}
+
+void AJuicyCharacter::Landed(const FHitResult& Hit)
+{
+	EndCoyoteTime();
+
+	Super::Landed(Hit);
+}
+
+void AJuicyCharacter::StartCoyoteTime()
+{
+	if (CoyoteTime <= 0.0f)
+	{
+		return;
+	}
+
+	FTimerManager& TimerManager = GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandleForCoyoteTime, this,
+	                      &AJuicyCharacter::EndCoyoteTime, CoyoteTime);
+}
+
+void AJuicyCharacter::EndCoyoteTime()
+{
+	FTimerManager& TimerManager = GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForCoyoteTime);
 }
