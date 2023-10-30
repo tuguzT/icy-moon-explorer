@@ -10,6 +10,7 @@ class ICYMOONEXPLORER_API FSavedMove_JuicyCharacter : public FSavedMove_Characte
 public:
 	uint8 bWantsToSlide : 1;
 	uint8 bWantsToDash : 1;
+	uint8 bWantsToMantle : 1;
 
 	FSavedMove_JuicyCharacter();
 	virtual ~FSavedMove_JuicyCharacter() override;

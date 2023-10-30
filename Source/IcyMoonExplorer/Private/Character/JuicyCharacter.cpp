@@ -19,7 +19,7 @@ AJuicyCharacter::AJuicyCharacter(const FObjectInitializer& ObjectInitializer)
 	JuicyCharacterMovement = Cast<UJuicyCharacterMovementComponent>(GetCharacterMovement());
 }
 
-FORCEINLINE UJuicyCharacterMovementComponent* AJuicyCharacter::GetJuicyCharacterMovement() const
+UJuicyCharacterMovementComponent* AJuicyCharacter::GetJuicyCharacterMovement() const
 {
 	return JuicyCharacterMovement;
 }
@@ -28,7 +28,7 @@ void AJuicyCharacter::Slide()
 {
 	if (CanSlide())
 	{
-		JuicyCharacterMovement->bWantsToSlide = true;
+		JuicyCharacterMovement->Slide();
 	}
 }
 
@@ -36,7 +36,7 @@ void AJuicyCharacter::StopSliding()
 {
 	if (JuicyCharacterMovement)
 	{
-		JuicyCharacterMovement->bWantsToSlide = false;
+		JuicyCharacterMovement->UnSlide();
 	}
 }
 
@@ -61,7 +61,7 @@ void AJuicyCharacter::Dash()
 {
 	if (CanDash())
 	{
-		JuicyCharacterMovement->bWantsToDash = true;
+		JuicyCharacterMovement->Dash();
 	}
 }
 
@@ -69,7 +69,7 @@ void AJuicyCharacter::StopDashing()
 {
 	if (JuicyCharacterMovement)
 	{
-		JuicyCharacterMovement->bWantsToDash = false;
+		JuicyCharacterMovement->UnDash();
 	}
 }
 
@@ -103,6 +103,38 @@ bool AJuicyCharacter::IsCoyoteTime() const
 {
 	const FTimerManager& TimerManager = GetWorldTimerManager();
 	return TimerManager.IsTimerActive(TimerHandleForCoyoteTime);
+}
+
+void AJuicyCharacter::Mantle()
+{
+	if (CanMantle())
+	{
+		JuicyCharacterMovement->Mantle();
+	}
+}
+
+void AJuicyCharacter::StopMantling()
+{
+	if (JuicyCharacterMovement)
+	{
+		JuicyCharacterMovement->UnMantle();
+	}
+}
+
+bool AJuicyCharacter::CanMantle() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->CanMantleInCurrentState();
+}
+
+void AJuicyCharacter::OnStartMantle()
+{
+	K2_OnStartMantle();
+}
+
+void AJuicyCharacter::OnEndMantle()
+{
+	K2_OnEndMantle();
 }
 
 void AJuicyCharacter::OnMovementModeChanged(const EMovementMode PrevMovementMode, const uint8 PreviousCustomMode)

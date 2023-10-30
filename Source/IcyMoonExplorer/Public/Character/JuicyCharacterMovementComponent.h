@@ -39,11 +39,42 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
 	float DashCooldown;
 
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	float MantleDuration;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
+	float MantleMaxDistance;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
+	float MantleReachHeight;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
+	float MantleMinSteepnessAngle;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
+	float MantleMaxSurfaceAngle;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
+	float MantleMaxAlignmentAngle;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0"))
+	uint8 MantleWallCheckFrequency;
+
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToDash : 1;
+
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bWantsToMantle : 1;
 
 	explicit UJuicyCharacterMovementComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -61,9 +92,15 @@ public:
 	virtual bool CanSlideInCurrentState() const;
 
 	virtual void Dash();
+	virtual void UnDash();
 	virtual bool IsDashing() const;
 	virtual bool IsDashingCooldown() const;
 	virtual bool CanDashInCurrentState() const;
+
+	virtual void Mantle();
+	virtual void UnMantle();
+	virtual bool IsMantling() const;
+	virtual bool CanMantleInCurrentState() const;
 
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual bool CanAttemptJump() const override;
@@ -77,6 +114,8 @@ protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 
+	virtual bool TryMantle();
+
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
 	                               const FVector& OldVelocity) override;
@@ -88,6 +127,8 @@ private:
 	FTimerHandle TimerHandleForDashCooldown;
 	FVector CurrentDashDirection;
 
+	FTimerHandle TimerHandleForMantleDuration;
+
 	bool HasInput() const;
 	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
 
@@ -98,4 +139,7 @@ private:
 	void EndDash();
 	void StartDashCooldown();
 	void EndDashCooldown();
+
+	void StartMantle();
+	void EndMantle();
 };

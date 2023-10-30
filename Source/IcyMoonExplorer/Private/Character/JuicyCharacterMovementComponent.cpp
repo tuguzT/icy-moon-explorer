@@ -1,5 +1,6 @@
 #include "Character/JuicyCharacterMovementComponent.h"
 
+#include "Components/CapsuleComponent.h"
 #include "Character/NetworkPredictionData_Client_JuicyCharacter.h"
 #include "Character/JuicyCharacter.h"
 
@@ -27,6 +28,17 @@ namespace Detail
 		const auto MovementModeRaw = static_cast<uint8>(MovementMode);
 		return MovementModeRaw + Prefix + NewCustomMode;
 	}
+
+	FCollisionQueryParams CollisionQueryParamsWithoutActor(const AActor* Actor)
+	{
+		TArray<AActor*> ChildActors;
+		Actor->GetAllChildActors(ChildActors);
+
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActors(ChildActors);
+		Params.AddIgnoredActor(Actor);
+		return Params;
+	}
 }
 
 UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
@@ -44,6 +56,15 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	DashDuration = 0.5f;
 	DashCooldown = 1.0f;
 	bWantsToDash = false;
+
+	MantleDuration = 0.5f;
+	MantleMaxDistance = 100.0f;
+	MantleReachHeight = 50.0f;
+	MantleMinSteepnessAngle = 75.0f;
+	MantleMaxSurfaceAngle = 40.0f;
+	MantleMaxAlignmentAngle = 45.0f;
+	MantleWallCheckFrequency = 5;
+	bWantsToMantle = false;
 }
 
 AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
@@ -96,12 +117,24 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
 	// const bool HasMinSpeed = Velocity.SquaredLength() >= FMath::Sqrt(MinSlideSpeed);
-	return HasInput() && IsMovingOnGround();
+	return HasInput()
+		&& IsMovingOnGround()
+		&& !IsMantling();
 }
 
 void UJuicyCharacterMovementComponent::Dash()
 {
+	if (!CanDashInCurrentState())
+	{
+		return;
+	}
+
 	bWantsToDash = true;
+}
+
+void UJuicyCharacterMovementComponent::UnDash()
+{
+	bWantsToDash = false;
 }
 
 bool UJuicyCharacterMovementComponent::IsDashing() const
@@ -118,17 +151,56 @@ bool UJuicyCharacterMovementComponent::IsDashingCooldown() const
 
 bool UJuicyCharacterMovementComponent::CanDashInCurrentState() const
 {
-	const bool IsAllowedMode = MovementMode == MOVE_Walking
+	const bool bIsAllowedMode = MovementMode == MOVE_Walking
 		|| MovementMode == MOVE_NavWalking
 		|| MovementMode == MOVE_Falling
 		|| MovementMode == MOVE_Flying;
-	const bool IsNotDashing = !IsDashing();
-	const bool IsNotDashingCooldown = !IsDashingCooldown();
+	const bool bIsNotDashing = !IsDashing();
+	const bool bIsNotDashingCooldown = !IsDashingCooldown();
+	const bool bIsNotMantling = !IsMantling();
 
 	return UpdatedComponent
-		&& IsAllowedMode
-		&& IsNotDashing
-		&& IsNotDashingCooldown;
+		&& bIsAllowedMode
+		&& bIsNotDashing
+		&& bIsNotDashingCooldown
+		&& bIsNotMantling;
+}
+
+void UJuicyCharacterMovementComponent::Mantle()
+{
+	if (!CanMantleInCurrentState())
+	{
+		return;
+	}
+
+	bWantsToMantle = true;
+}
+
+void UJuicyCharacterMovementComponent::UnMantle()
+{
+	bWantsToMantle = false;
+}
+
+bool UJuicyCharacterMovementComponent::IsMantling() const
+{
+	const FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	return TimerManager.IsTimerActive(TimerHandleForMantleDuration);
+}
+
+bool UJuicyCharacterMovementComponent::CanMantleInCurrentState() const
+{
+	const bool bIsAllowedMode = MovementMode == MOVE_Walking
+		|| MovementMode == MOVE_NavWalking
+		|| MovementMode == MOVE_Falling
+		|| MovementMode == MOVE_Flying
+		|| MovementMode == MOVE_Swimming;
+	const bool bIsNotDashing = !IsDashing();
+	const bool bIsNotMantling = !IsMantling();
+
+	return UpdatedComponent
+		&& bIsAllowedMode
+		&& bIsNotDashing
+		&& bIsNotMantling;
 }
 
 FNetworkPredictionData_Client* UJuicyCharacterMovementComponent::GetPredictionData_Client() const
@@ -145,7 +217,8 @@ bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 {
 	return Super::CanAttemptJump()
 		&& !IsSliding()
-		&& !IsDashing();
+		&& !IsDashing()
+		&& !IsMantling();
 }
 
 void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
@@ -166,15 +239,21 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 		StartDash();
 	}
 
+	// Mantling
+	if (bWantsToMantle && CanMantleInCurrentState())
+	{
+		StartMantle();
+	}
+
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
 bool UJuicyCharacterMovementComponent::IsMovingOnGround() const
 {
-	const bool bSuitableMode = MovementMode == MOVE_Walking
+	const bool bIsAllowedMode = MovementMode == MOVE_Walking
 		|| MovementMode == MOVE_NavWalking
 		|| IsSliding();
-	return bSuitableMode && UpdatedComponent;
+	return bIsAllowedMode && UpdatedComponent;
 }
 
 float UJuicyCharacterMovementComponent::GetMaxSpeed() const
@@ -471,6 +550,104 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 	}
 }
 
+bool UJuicyCharacterMovementComponent::TryMantle()
+{
+	const AJuicyCharacter* Owner = GetJuicyCharacterOwner();
+	const UCapsuleComponent* Capsule = Owner->GetCapsuleComponent();
+	const float Radius = Capsule->GetScaledCapsuleRadius();
+	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+	const float MaxReachHeight = HalfHeight * 2.0f + MantleReachHeight;
+	const FVector FrontDirection = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
+	const FVector FeetLocation = UpdatedComponent->GetComponentLocation() + FVector::DownVector * HalfHeight;
+	const float CosMinSteepnessAngle = FMath::Cos(FMath::DegreesToRadians(MantleMinSteepnessAngle));
+	const float CosMaxSurfaceAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxSurfaceAngle));
+	const float CosMaxAlignmentAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxAlignmentAngle));
+	const auto ProfileName = TEXT("BlockAll");
+	const auto CollisionQueryParams = Detail::CollisionQueryParamsWithoutActor(Owner);
+
+	// Check wall
+	FHitResult FrontHit;
+	FVector FrontStart = FeetLocation + FVector::UpVector * (MaxStepHeight - 1);
+	const float CheckStepHeight = (HalfHeight * 2.0f - (MaxStepHeight - 1)) / MantleWallCheckFrequency;
+	const FVector CheckStep = FVector::UpVector * CheckStepHeight;
+	for (decltype(MantleWallCheckFrequency) i = 0; i < MantleWallCheckFrequency + 1; ++i)
+	{
+		const FVector FrontEnd = FrontStart + FrontDirection * MantleMaxDistance;
+		// ReSharper disable once CppTooWideScope
+		const bool bIsFrontTraceSuccessful = GetWorld()->LineTraceSingleByProfile(
+			FrontHit, FrontStart, FrontEnd, ProfileName, CollisionQueryParams);
+		if (bIsFrontTraceSuccessful)
+		{
+			break;
+		}
+		FrontStart += CheckStep;
+	}
+	if (!FrontHit.IsValidBlockingHit())
+	{
+		return false;
+	}
+	const float CosWallSteepnessAngle = FrontHit.Normal | FVector::UpVector;
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const float CosWallAlignmentAngle = FrontDirection | -FrontHit.Normal;
+	if (FMath::Abs(CosWallSteepnessAngle) > CosMinSteepnessAngle || CosWallAlignmentAngle < CosMaxAlignmentAngle)
+	{
+		return false;
+	}
+
+	// Check wall surface
+	TArray<FHitResult> HeightHits;
+	FHitResult SurfaceHit;
+	const FVector WallUpDirection = FVector::VectorPlaneProject(FVector::UpVector, FrontHit.Normal).GetSafeNormal();
+	const float WallCos = FVector::UpVector | FrontHit.Normal;
+	const float WallSin = FMath::Sqrt(1 - WallCos * WallCos);
+	const FVector SurfaceStart = FrontHit.Location + FrontDirection
+		+ WallUpDirection * (MaxReachHeight - (MaxStepHeight - 1)) / WallSin;
+	const FVector SurfaceEnd = FrontHit.Location + FrontDirection;
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const bool bIsSurfaceTraceSuccessful = GetWorld()->LineTraceMultiByProfile(
+		HeightHits, SurfaceStart, SurfaceEnd, ProfileName, CollisionQueryParams);
+	if (!bIsSurfaceTraceSuccessful)
+	{
+		return false;
+	}
+	for (const FHitResult& Hit : HeightHits)
+	{
+		if (Hit.IsValidBlockingHit())
+		{
+			SurfaceHit = Hit;
+			break;
+		}
+	}
+	if (!SurfaceHit.IsValidBlockingHit()
+		|| (SurfaceHit.Normal | FVector::UpVector) < CosMaxSurfaceAngle)
+	{
+		return false;
+	}
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const float Height = (SurfaceHit.Location - FeetLocation) | FVector::UpVector;
+	if (Height > MaxReachHeight)
+	{
+		return false;
+	}
+
+	// Check if character can fit
+	const float SurfaceCos = FVector::UpVector | SurfaceHit.Normal;
+	const float SurfaceSin = FMath::Sqrt(1 - SurfaceCos * SurfaceCos);
+	const FVector CapsuleLocation = SurfaceHit.Location + FrontDirection * Radius
+		+ FVector::UpVector * (HalfHeight + 1 + Radius * 2 * SurfaceSin);
+	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
+	// ReSharper disable once CppTooWideScope
+	const bool ShapeOverlaps = GetWorld()->OverlapAnyTestByProfile(
+		CapsuleLocation, FQuat::Identity, ProfileName, CapsuleShape, CollisionQueryParams);
+	if (ShapeOverlaps)
+	{
+		return false;
+	}
+
+	// TODO return information to perform mantling
+	return true;
+}
+
 void UJuicyCharacterMovementComponent::UpdateFromCompressedFlags(const uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
@@ -577,4 +754,31 @@ void UJuicyCharacterMovementComponent::EndDashCooldown()
 	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
 	TimerManager.ClearTimer(TimerHandleForDashCooldown);
 	GetJuicyCharacterOwner()->OnEndDashCooldown();
+}
+
+void UJuicyCharacterMovementComponent::StartMantle()
+{
+	if (MantleDuration <= 0.0f)
+	{
+		return;
+	}
+
+	if (const bool bIsMantlingSuccessful = TryMantle();
+		!bIsMantlingSuccessful)
+	{
+		return;
+	}
+
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandleForMantleDuration, this,
+	                      &UJuicyCharacterMovementComponent::EndMantle,
+	                      MantleDuration);
+	GetJuicyCharacterOwner()->OnStartMantle();
+}
+
+void UJuicyCharacterMovementComponent::EndMantle()
+{
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForMantleDuration);
+	GetJuicyCharacterOwner()->OnEndMantle();
 }

@@ -7,6 +7,7 @@ FSavedMove_JuicyCharacter::FSavedMove_JuicyCharacter()
 {
 	bWantsToSlide = false;
 	bWantsToDash = false;
+	bWantsToMantle = false;
 }
 
 FSavedMove_JuicyCharacter::~FSavedMove_JuicyCharacter()
@@ -20,10 +21,12 @@ bool FSavedMove_JuicyCharacter::CanCombineWith(const FSavedMovePtr& NewMove, ACh
 
 	const bool CanCombineSlide = NewJuicyMove->bWantsToSlide == bWantsToSlide;
 	const bool CanCombineDash = NewJuicyMove->bWantsToDash == bWantsToDash;
+	const bool CanCombineMantle = NewJuicyMove->bWantsToMantle == bWantsToMantle;
 
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta)
 		&& CanCombineSlide
-		&& CanCombineDash;
+		&& CanCombineDash
+		&& CanCombineMantle;
 }
 
 void FSavedMove_JuicyCharacter::Clear()
@@ -32,6 +35,7 @@ void FSavedMove_JuicyCharacter::Clear()
 
 	bWantsToSlide = false;
 	bWantsToDash = false;
+	bWantsToMantle = false;
 }
 
 uint8 FSavedMove_JuicyCharacter::GetCompressedFlags() const
@@ -47,6 +51,7 @@ void FSavedMove_JuicyCharacter::SetMoveFor(ACharacter* C, const float InDeltaTim
 	const auto* CharacterMovement = Cast<UJuicyCharacterMovementComponent>(C->GetCharacterMovement());
 	bWantsToSlide = CharacterMovement->bWantsToSlide;
 	bWantsToDash = CharacterMovement->bWantsToDash;
+	bWantsToMantle = CharacterMovement->bWantsToMantle;
 }
 
 void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
@@ -56,4 +61,5 @@ void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
 	auto* CharacterMovement = Cast<UJuicyCharacterMovementComponent>(C->GetCharacterMovement());
 	CharacterMovement->bWantsToSlide = bWantsToSlide;
 	CharacterMovement->bWantsToDash = bWantsToDash;
+	CharacterMovement->bWantsToMantle = bWantsToMantle;
 }

@@ -21,10 +21,10 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	UJuicyCharacterMovementComponent* GetJuicyCharacterMovement() const;
 
-	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void Slide();
 
-	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void StopSliding();
 
 	UFUNCTION(BlueprintPure, Category=Character)
@@ -40,10 +40,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndSlide", ScriptName="OnEndSlide"))
 	void K2_OnEndSlide();
 
-	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void Dash();
 
-	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void StopDashing();
 
 	UFUNCTION(BlueprintPure, Category=Character)
@@ -71,6 +71,25 @@ public:
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsCoyoteTime() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual void Mantle();
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual void StopMantling();
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool CanMantle() const;
+
+	virtual void OnStartMantle();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartMantle", ScriptName="OnStartMantle"))
+	void K2_OnStartMantle();
+
+	virtual void OnEndMantle();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndMantle", ScriptName="OnEndMantle"))
+	void K2_OnEndMantle();
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	virtual bool CanJumpInternal_Implementation() const override;
