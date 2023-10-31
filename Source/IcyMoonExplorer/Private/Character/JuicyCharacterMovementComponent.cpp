@@ -57,14 +57,15 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	DashCooldown = 1.0f;
 	bWantsToDash = false;
 
-	MantleDuration = 0.5f;
 	MantleMaxDistance = 100.0f;
 	MantleReachHeight = 50.0f;
 	MantleMinSteepnessAngle = 75.0f;
 	MantleMaxSurfaceAngle = 40.0f;
 	MantleMaxAlignmentAngle = 45.0f;
 	MantleWallCheckFrequency = 5;
+	bMantleOverridesJump = false;
 	bWantsToMantle = false;
+	bIsMantling = false;
 }
 
 AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
@@ -183,8 +184,7 @@ void UJuicyCharacterMovementComponent::UnMantle()
 
 bool UJuicyCharacterMovementComponent::IsMantling() const
 {
-	const FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	return TimerManager.IsTimerActive(TimerHandleForMantleDuration);
+	return bIsMantling;
 }
 
 bool UJuicyCharacterMovementComponent::CanMantleInCurrentState() const
@@ -201,6 +201,18 @@ bool UJuicyCharacterMovementComponent::CanMantleInCurrentState() const
 		&& bIsAllowedMode
 		&& bIsNotDashing
 		&& bIsNotMantling;
+}
+
+void UJuicyCharacterMovementComponent::ExitMantling()
+{
+	if (!IsMantling())
+	{
+		return;
+	}
+
+	bIsMantling = false;
+	Super::SetMovementMode(MOVE_Walking);
+	GetJuicyCharacterOwner()->OnEndMantle();
 }
 
 FNetworkPredictionData_Client* UJuicyCharacterMovementComponent::GetPredictionData_Client() const
@@ -240,9 +252,14 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 	}
 
 	// Mantling
-	if (bWantsToMantle && CanMantleInCurrentState())
+	if (!IsMantling() && bWantsToMantle && CanMantleInCurrentState())
 	{
 		StartMantle();
+	}
+	else if (IsMantling())
+	{
+		Acceleration = FVector::ZeroVector;
+		Velocity = FVector::ZeroVector;
 	}
 
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -557,7 +574,7 @@ bool UJuicyCharacterMovementComponent::TryMantle()
 	const float Radius = Capsule->GetScaledCapsuleRadius();
 	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
 	const float MaxReachHeight = HalfHeight * 2.0f + MantleReachHeight;
-	const FVector FrontDirection = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
+	const FVector FrontDirection = Acceleration.GetSafeNormal2D();
 	const FVector FeetLocation = UpdatedComponent->GetComponentLocation() + FVector::DownVector * HalfHeight;
 	const float CosMinSteepnessAngle = FMath::Cos(FMath::DegreesToRadians(MantleMinSteepnessAngle));
 	const float CosMaxSurfaceAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxSurfaceAngle));
@@ -758,27 +775,25 @@ void UJuicyCharacterMovementComponent::EndDashCooldown()
 
 void UJuicyCharacterMovementComponent::StartMantle()
 {
-	if (MantleDuration <= 0.0f)
-	{
-		return;
-	}
+	const auto JuicyCharacterOwner = GetJuicyCharacterOwner();
 
 	if (const bool bIsMantlingSuccessful = TryMantle();
 		!bIsMantlingSuccessful)
 	{
+		if (bMantleOverridesJump)
+		{
+			UnMantle();
+			JuicyCharacterOwner->bPressedJump = true;
+			JuicyCharacterOwner->CheckJumpInput(GetWorld()->GetDeltaSeconds());
+		}
 		return;
 	}
 
-	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	TimerManager.SetTimer(TimerHandleForMantleDuration, this,
-	                      &UJuicyCharacterMovementComponent::EndMantle,
-	                      MantleDuration);
-	GetJuicyCharacterOwner()->OnStartMantle();
-}
-
-void UJuicyCharacterMovementComponent::EndMantle()
-{
-	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForMantleDuration);
-	GetJuicyCharacterOwner()->OnEndMantle();
+	if (bMantleOverridesJump)
+	{
+		JuicyCharacterOwner->StopJumping();
+	}
+	bIsMantling = true;
+	Super::SetMovementMode(MOVE_Flying);
+	JuicyCharacterOwner->OnStartMantle();
 }

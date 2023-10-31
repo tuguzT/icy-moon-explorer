@@ -40,10 +40,6 @@ public:
 	float DashCooldown;
 
 	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
-	float MantleDuration;
-
-	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
 	float MantleMaxDistance;
 
@@ -66,6 +62,9 @@ public:
 	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0"))
 	uint8 MantleWallCheckFrequency;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite)
+	uint8 bMantleOverridesJump : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
@@ -101,6 +100,7 @@ public:
 	virtual void UnMantle();
 	virtual bool IsMantling() const;
 	virtual bool CanMantleInCurrentState() const;
+	virtual void ExitMantling();
 
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual bool CanAttemptJump() const override;
@@ -127,7 +127,7 @@ private:
 	FTimerHandle TimerHandleForDashCooldown;
 	FVector CurrentDashDirection;
 
-	FTimerHandle TimerHandleForMantleDuration;
+	uint8 bIsMantling : 1;
 
 	bool HasInput() const;
 	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
@@ -141,5 +141,4 @@ private:
 	void EndDashCooldown();
 
 	void StartMantle();
-	void EndMantle();
 };

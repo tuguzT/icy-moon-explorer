@@ -127,6 +127,14 @@ bool AJuicyCharacter::CanMantle() const
 		&& JuicyCharacterMovement->CanMantleInCurrentState();
 }
 
+void AJuicyCharacter::ExitMantling()
+{
+	if (JuicyCharacterMovement)
+	{
+		JuicyCharacterMovement->ExitMantling();
+	}
+}
+
 void AJuicyCharacter::OnStartMantle()
 {
 	K2_OnStartMantle();
@@ -158,6 +166,27 @@ void AJuicyCharacter::Landed(const FHitResult& Hit)
 	EndCoyoteTime();
 
 	Super::Landed(Hit);
+}
+
+void AJuicyCharacter::Jump()
+{
+	Super::Jump();
+
+	if (CanMantle() && JuicyCharacterMovement->bMantleOverridesJump)
+	{
+		JuicyCharacterMovement->Mantle();
+		bPressedJump = false;
+	}
+}
+
+void AJuicyCharacter::StopJumping()
+{
+	Super::StopJumping();
+
+	if (JuicyCharacterMovement && JuicyCharacterMovement->bMantleOverridesJump)
+	{
+		JuicyCharacterMovement->UnMantle();
+	}
 }
 
 void AJuicyCharacter::StartCoyoteTime()

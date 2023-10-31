@@ -81,6 +81,9 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanMantle() const;
 
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual void ExitMantling();
+
 	virtual void OnStartMantle();
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartMantle", ScriptName="OnStartMantle"))
@@ -94,6 +97,9 @@ public:
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Landed(const FHitResult& Hit) override;
+
+	virtual void Jump() override;
+	virtual void StopJumping() override;
 
 private:
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
