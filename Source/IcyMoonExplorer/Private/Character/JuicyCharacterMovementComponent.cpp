@@ -577,7 +577,7 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 	}
 }
 
-bool UJuicyCharacterMovementComponent::TryMantle()
+bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit)
 {
 	const AJuicyCharacter* Owner = GetJuicyCharacterOwner();
 	const UCapsuleComponent* Capsule = Owner->GetCapsuleComponent();
@@ -593,7 +593,6 @@ bool UJuicyCharacterMovementComponent::TryMantle()
 	const auto CollisionQueryParams = Detail::CollisionQueryParamsWithoutActor(Owner);
 
 	// Check wall
-	FHitResult FrontHit;
 	FVector FrontStart = FeetLocation + FVector::UpVector * (MaxStepHeight - 1);
 	const float CheckStepHeight = (HalfHeight * 2.0f - (MaxStepHeight - 1)) / MantleWallCheckFrequency;
 	const FVector CheckStep = FVector::UpVector * CheckStepHeight;
@@ -623,7 +622,6 @@ bool UJuicyCharacterMovementComponent::TryMantle()
 
 	// Check wall surface
 	TArray<FHitResult> HeightHits;
-	FHitResult SurfaceHit;
 	const FVector WallUpDirection = FVector::VectorPlaneProject(FVector::UpVector, FrontHit.Normal).GetSafeNormal();
 	const float WallCos = FVector::UpVector | FrontHit.Normal;
 	const float WallSin = FMath::Sqrt(1 - WallCos * WallCos);
@@ -671,7 +669,6 @@ bool UJuicyCharacterMovementComponent::TryMantle()
 		return false;
 	}
 
-	// TODO return information to perform mantling
 	return true;
 }
 
@@ -787,16 +784,18 @@ void UJuicyCharacterMovementComponent::StartMantle()
 {
 	const auto JuicyCharacterOwner = GetJuicyCharacterOwner();
 
-	if (const bool bIsMantlingSuccessful = TryMantle();
+	FHitResult FrontHit, SurfaceHit;
+	if (const bool bIsMantlingSuccessful = TryMantle(FrontHit, SurfaceHit);
 		!bIsMantlingSuccessful)
 	{
 		return;
 	}
 
 	bIsMantling = true;
+	JuicyCharacterOwner->OnStartMantle(FrontHit, SurfaceHit);
+
+	JuicyCharacterOwner->StopJumping();
 	Acceleration = FVector::ZeroVector;
 	Velocity = FVector::ZeroVector;
 	Super::SetMovementMode(MOVE_Flying);
-	JuicyCharacterOwner->StopJumping();
-	JuicyCharacterOwner->OnStartMantle();
 }

@@ -127,17 +127,17 @@ bool AJuicyCharacter::CanMantle() const
 		&& JuicyCharacterMovement->CanMantleInCurrentState();
 }
 
+void AJuicyCharacter::OnStartMantle(const FHitResult& FrontHit, const FHitResult& SurfaceHit)
+{
+	K2_OnStartMantle(FrontHit, SurfaceHit);
+}
+
 void AJuicyCharacter::ExitMantling()
 {
 	if (JuicyCharacterMovement)
 	{
 		JuicyCharacterMovement->ExitMantling();
 	}
-}
-
-void AJuicyCharacter::OnStartMantle()
-{
-	K2_OnStartMantle();
 }
 
 void AJuicyCharacter::OnEndMantle()

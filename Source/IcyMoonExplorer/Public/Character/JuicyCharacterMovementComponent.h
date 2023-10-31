@@ -111,7 +111,7 @@ protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 
-	virtual bool TryMantle();
+	virtual bool TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit);
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,

@@ -81,13 +81,13 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanMantle() const;
 
-	UFUNCTION(BlueprintCallable, Category=Character)
-	virtual void ExitMantling();
-
-	virtual void OnStartMantle();
+	virtual void OnStartMantle(const FHitResult& FrontHit, const FHitResult& SurfaceHit);
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartMantle", ScriptName="OnStartMantle"))
-	void K2_OnStartMantle();
+	void K2_OnStartMantle(const FHitResult& FrontHit, const FHitResult& SurfaceHit);
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual void ExitMantling();
 
 	virtual void OnEndMantle();
 
