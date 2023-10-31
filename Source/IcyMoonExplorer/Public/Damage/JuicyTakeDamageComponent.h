@@ -23,7 +23,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTryTakingRadialDamageSignature
                                                const FHitResult&, HitInfo);
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature, float, DamageTaken);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature,
+                                            float, DamageTaken);
 
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartTakeDamageCooldownSignature);

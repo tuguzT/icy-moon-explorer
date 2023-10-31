@@ -3,8 +3,8 @@
 #include "CoreMinimal.h"
 #include "JuicyTakeDamage.generated.h"
 
-USTRUCT(BlueprintType)
-struct FJuicyTakeDamage final
+USTRUCT(BlueprintType, Blueprintable)
+struct ICYMOONEXPLORER_API FJuicyTakeDamage
 {
 	GENERATED_BODY()
 
@@ -19,6 +19,11 @@ struct FJuicyTakeDamage final
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Take Damage")
 	TObjectPtr<AController> InstigatedBy;
+
+	FJuicyTakeDamage();
+	FJuicyTakeDamage(float Damage, const UDamageType* DamageType,
+	                 AActor* DamageDealer, AController* InstigatedBy);
+	virtual ~FJuicyTakeDamage();
 
 	bool IsHealing() const;
 

@@ -12,7 +12,11 @@ struct ICYMOONEXPLORER_API FJuicyDamageResistance
 	TSubclassOf<UDamageType> DamageTypeClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage Resistance")
-	float Multiplier = 1.0f;
+	float Multiplier;
+
+	FJuicyDamageResistance();
+	FJuicyDamageResistance(TSubclassOf<UDamageType> DamageTypeClass, float Multiplier);
+	virtual ~FJuicyDamageResistance();
 
 	float ProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
 

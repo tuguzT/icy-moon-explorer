@@ -20,19 +20,19 @@ public:
 	AController* GetDamageInstigator() const;
 
 	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	void DealDamage(FJuicyDealDamage DamageToDeal, AActor* DamagedActor) const;
+	void DealDamage(const FJuicyDealDamage& DamageToDeal, AActor* DamagedActor) const;
 
 	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	void DealPointDamage(FJuicyDealDamage DamageToDeal, AActor* DamagedActor,
+	void DealPointDamage(const FJuicyDealDamage& DamageToDeal, AActor* DamagedActor,
 	                     const FVector& HitFromDirection, const FHitResult& HitInfo) const;
 
 	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	bool DealRadialDamage(FJuicyDealDamage DamageToDeal, const FVector& Origin, float DamageRadius,
+	bool DealRadialDamage(const FJuicyDealDamage& DamageToDeal, const FVector& Origin, float DamageRadius,
 	                      const TArray<AActor*>& IgnoreActors, bool bDoFullDamage = false,
 	                      ECollisionChannel DamagePreventionChannel = ECC_Visibility) const;
 
 	UFUNCTION(BlueprintPure=false, Category="Components|Deal Damage")
-	bool DealRadialDamageWithFalloff(FJuicyDealDamage DamageToDeal, float MinimumDamage, const FVector& Origin,
+	bool DealRadialDamageWithFalloff(const FJuicyDealDamage& DamageToDeal, float MinimumDamage, const FVector& Origin,
 	                                 float DamageInnerRadius, float DamageOuterRadius, float DamageFalloff,
 	                                 const TArray<AActor*>& IgnoreActors,
 	                                 ECollisionChannel DamagePreventionChannel = ECC_Visibility) const;

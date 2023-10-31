@@ -1,5 +1,21 @@
 ﻿#include "Damage/JuicyDamageResistance.h"
 
+FJuicyDamageResistance::FJuicyDamageResistance()
+	: FJuicyDamageResistance{UDamageType::StaticClass(), 1.0f}
+{
+}
+
+FJuicyDamageResistance::FJuicyDamageResistance(const TSubclassOf<UDamageType> DamageTypeClass,
+                                               const float Multiplier)
+	: DamageTypeClass{DamageTypeClass},
+	  Multiplier{Multiplier}
+{
+}
+
+FJuicyDamageResistance::~FJuicyDamageResistance()
+{
+}
+
 float FJuicyDamageResistance::ProcessDamage(const FJuicyTakeDamage& DamageToTake) const
 {
 	if (!CanProcessDamage(DamageToTake))

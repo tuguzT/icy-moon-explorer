@@ -27,7 +27,7 @@ void UJuicyTakeDamageComponent::BeginPlay()
 	Owner->OnTakeRadialDamage.AddUniqueDynamic(this, &UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner);
 }
 
-FORCEINLINE float UJuicyTakeDamageComponent::GetHealth() const
+float UJuicyTakeDamageComponent::GetHealth() const
 {
 	return Health;
 }
@@ -56,7 +56,7 @@ void UJuicyTakeDamageComponent::SetHealth(const float NewHealth)
 	}
 }
 
-FORCEINLINE float UJuicyTakeDamageComponent::GetMaxHealth() const
+float UJuicyTakeDamageComponent::GetMaxHealth() const
 {
 	return MaxHealth;
 }
@@ -81,7 +81,7 @@ bool UJuicyTakeDamageComponent::IsTakeDamageCooldown() const
 	return TimerManager.IsTimerActive(TimerHandleForTakeDamageCooldown);
 }
 
-FORCEINLINE float UJuicyTakeDamageComponent::GetReviveHealth() const
+float UJuicyTakeDamageComponent::GetReviveHealth() const
 {
 	return ReviveHealth;
 }
@@ -91,17 +91,17 @@ void UJuicyTakeDamageComponent::SetReviveHealth(const float NewReviveHealth)
 	ReviveHealth = FMath::Clamp(NewReviveHealth, 0.0f, MaxHealth);
 }
 
-FORCEINLINE bool UJuicyTakeDamageComponent::IsDead() const
+bool UJuicyTakeDamageComponent::IsDead() const
 {
 	return Health <= 0.0f;
 }
 
-FORCEINLINE float UJuicyTakeDamageComponent::GetSafeHealthPercentage() const
+float UJuicyTakeDamageComponent::GetSafeHealthPercentage() const
 {
 	return UKismetMathLibrary::SafeDivide(Health, MaxHealth);
 }
 
-FORCEINLINE float UJuicyTakeDamageComponent::GetUnsafeHealthPercentage() const
+float UJuicyTakeDamageComponent::GetUnsafeHealthPercentage() const
 {
 	return Health / MaxHealth;
 }
@@ -133,12 +133,7 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		auto DamageToTake = FJuicyTakeDamage{
-			.Damage = Damage,
-			.DamageType = DamageType,
-			.DamageDealer = DamageCauser,
-			.InstigatedBy = InstigatedBy,
-		};
+		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake);
 		OnTryTakingAnyDamage.Broadcast(DamageToTake);
 	}
@@ -162,12 +157,7 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		auto DamageToTake = FJuicyTakeDamage{
-			.Damage = Damage,
-			.DamageType = DamageType,
-			.DamageDealer = DamageCauser,
-			.InstigatedBy = InstigatedBy,
-		};
+		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake);
 		OnTryTakingPointDamage.Broadcast(DamageToTake, HitLocation, FHitComponent, BoneName, ShotFromDirection);
 	}
@@ -186,12 +176,7 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 {
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
-		auto DamageToTake = FJuicyTakeDamage{
-			.Damage = Damage,
-			.DamageType = DamageType,
-			.DamageDealer = DamageCauser,
-			.InstigatedBy = InstigatedBy,
-		};
+		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake);
 		OnTryTakingRadialDamage.Broadcast(DamageToTake, Origin, HitInfo);
 	}
