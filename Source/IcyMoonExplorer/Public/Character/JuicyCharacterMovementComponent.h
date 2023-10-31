@@ -63,9 +63,6 @@ public:
 		meta=(ClampMin="0", UIMin="0"))
 	uint8 MantleWallCheckFrequency;
 
-	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite)
-	uint8 bMantleOverridesJump : 1;
-
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
 

@@ -98,9 +98,6 @@ public:
 	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Landed(const FHitResult& Hit) override;
 
-	virtual void Jump() override;
-	virtual void StopJumping() override;
-
 private:
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UJuicyCharacterMovementComponent> JuicyCharacterMovement;

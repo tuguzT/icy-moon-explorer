@@ -168,27 +168,6 @@ void AJuicyCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 }
 
-void AJuicyCharacter::Jump()
-{
-	Super::Jump();
-
-	if (CanMantle() && JuicyCharacterMovement->bMantleOverridesJump)
-	{
-		JuicyCharacterMovement->Mantle();
-		bPressedJump = false;
-	}
-}
-
-void AJuicyCharacter::StopJumping()
-{
-	Super::StopJumping();
-
-	if (JuicyCharacterMovement && JuicyCharacterMovement->bMantleOverridesJump)
-	{
-		JuicyCharacterMovement->UnMantle();
-	}
-}
-
 void AJuicyCharacter::StartCoyoteTime()
 {
 	if (CoyoteTime <= 0.0f)
