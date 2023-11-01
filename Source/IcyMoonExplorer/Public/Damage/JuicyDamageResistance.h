@@ -18,9 +18,11 @@ struct ICYMOONEXPLORER_API FJuicyDamageResistance
 	FJuicyDamageResistance(TSubclassOf<UDamageType> DamageTypeClass, float Multiplier);
 	virtual ~FJuicyDamageResistance();
 
-	float ProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
+	float ProcessDamage(const FJuicyTakeDamage& DamageToTake,
+	                    const AActor* DamagedActor) const;
 
-	bool CanProcessDamage(const FJuicyTakeDamage& DamageToTake) const;
+	bool CanProcessDamage(const FJuicyTakeDamage& DamageToTake,
+	                      const AActor* DamagedActor) const;
 
 	bool HasAnyEffect() const;
 

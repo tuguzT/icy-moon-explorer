@@ -16,18 +16,20 @@ FJuicyDamageResistance::~FJuicyDamageResistance()
 {
 }
 
-float FJuicyDamageResistance::ProcessDamage(const FJuicyTakeDamage& DamageToTake) const
+float FJuicyDamageResistance::ProcessDamage(const FJuicyTakeDamage& DamageToTake,
+                                            const AActor* DamagedActor) const
 {
-	if (!CanProcessDamage(DamageToTake))
+	if (!CanProcessDamage(DamageToTake, DamagedActor))
 	{
 		return DamageToTake.Damage;
 	}
 	return DamageToTake.Damage * Multiplier;
 }
 
-bool FJuicyDamageResistance::CanProcessDamage(const FJuicyTakeDamage& DamageToTake) const
+bool FJuicyDamageResistance::CanProcessDamage(const FJuicyTakeDamage& DamageToTake,
+                                              const AActor* DamagedActor) const
 {
-	return DamageToTake.DamageType.IsA(DamageTypeClass);
+	return DamagedActor && DamageToTake.DamageType.IsA(DamageTypeClass);
 }
 
 bool FJuicyDamageResistance::HasAnyEffect() const

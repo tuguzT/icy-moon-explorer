@@ -166,7 +166,8 @@ private:
 	bool CanTakeDamageDelegatedFromOwner(AActor* DamagedActor, AActor* DamageCauser) const;
 
 	void SetHealthRaw(float NewHealth);
-	void ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake) const;
+	void ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake,
+	                                     const AActor* DamagedActor) const;
 
 	void StartTakeDamageCooldown();
 	void EndTakeDamageCooldown();

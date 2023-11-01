@@ -134,7 +134,7 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
-		ProcessResistancesAutomatically(DamageToTake);
+		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
 		OnTryTakingAnyDamage.Broadcast(DamageToTake);
 	}
 }
@@ -158,7 +158,7 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
-		ProcessResistancesAutomatically(DamageToTake);
+		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
 		OnTryTakingPointDamage.Broadcast(DamageToTake, HitLocation, FHitComponent, BoneName, ShotFromDirection);
 	}
 }
@@ -177,7 +177,7 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
-		ProcessResistancesAutomatically(DamageToTake);
+		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
 		OnTryTakingRadialDamage.Broadcast(DamageToTake, Origin, HitInfo);
 	}
 }
@@ -205,14 +205,15 @@ void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)
 	Health = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
 }
 
-void UJuicyTakeDamageComponent::ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake) const
+void UJuicyTakeDamageComponent::ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake,
+                                                                const AActor* DamagedActor) const
 {
 	if (!bProcessResistancesAutomatically)
 	{
 		return;
 	}
-	const float ProcessedDamage = UJuicyDamageLibrary::ProcessResistances(DamageResistances, DamageToTake);
-	DamageToTake.Damage = ProcessedDamage;
+
+	DamageToTake.Damage = UJuicyDamageLibrary::ProcessResistances(DamageResistances, DamageToTake, DamagedActor);
 }
 
 void UJuicyTakeDamageComponent::StartTakeDamageCooldown()

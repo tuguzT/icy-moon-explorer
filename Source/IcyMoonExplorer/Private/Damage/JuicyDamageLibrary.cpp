@@ -21,27 +21,30 @@ bool UJuicyDamageLibrary::HasAnyDamageToTake(const FJuicyTakeDamage& DamageToTak
 }
 
 float UJuicyDamageLibrary::ProcessResistance(const FJuicyDamageResistance& DamageResistance,
-                                             const FJuicyTakeDamage& DamageToTake)
+                                             const FJuicyTakeDamage& DamageToTake,
+                                             const AActor* DamagedActor)
 {
-	return DamageResistance.ProcessDamage(DamageToTake);
+	return DamageResistance.ProcessDamage(DamageToTake, DamagedActor);
 }
 
 float UJuicyDamageLibrary::ProcessResistances(const TArray<FJuicyDamageResistance>& DamageResistances,
-                                              const FJuicyTakeDamage& DamageToTake)
+                                              const FJuicyTakeDamage& DamageToTake,
+                                              const AActor* DamagedActor)
 {
 	FJuicyTakeDamage DamageToProcess = DamageToTake;
 	for (const auto& DamageResistance : DamageResistances)
 	{
-		const float ProcessedDamage = DamageResistance.ProcessDamage(DamageToProcess);
+		const float ProcessedDamage = DamageResistance.ProcessDamage(DamageToProcess, DamagedActor);
 		DamageToProcess.Damage = ProcessedDamage;
 	}
 	return DamageToProcess.Damage;
 }
 
 bool UJuicyDamageLibrary::CanProcessResistance(const FJuicyDamageResistance& DamageResistance,
-                                               const FJuicyTakeDamage& DamageToTake)
+                                               const FJuicyTakeDamage& DamageToTake,
+                                               const AActor* DamagedActor)
 {
-	return DamageResistance.CanProcessDamage(DamageToTake);
+	return DamageResistance.CanProcessDamage(DamageToTake, DamagedActor);
 }
 
 bool UJuicyDamageLibrary::HasAnyResistance(const FJuicyDamageResistance& DamageResistance)

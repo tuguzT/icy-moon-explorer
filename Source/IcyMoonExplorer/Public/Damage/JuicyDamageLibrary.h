@@ -25,15 +25,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Damage Resistance")
 	static float ProcessResistance(const FJuicyDamageResistance& DamageResistance,
-	                               const FJuicyTakeDamage& DamageToTake);
+	                               const FJuicyTakeDamage& DamageToTake,
+	                               const AActor* DamagedActor);
 
 	UFUNCTION(BlueprintPure, Category="Damage Resistance")
 	static float ProcessResistances(const TArray<FJuicyDamageResistance>& DamageResistances,
-	                                const FJuicyTakeDamage& DamageToTake);
+	                                const FJuicyTakeDamage& DamageToTake,
+	                                const AActor* DamagedActor);
 
 	UFUNCTION(BlueprintPure, Category="Damage Resistance")
 	static bool CanProcessResistance(const FJuicyDamageResistance& DamageResistance,
-	                                 const FJuicyTakeDamage& DamageToTake);
+	                                 const FJuicyTakeDamage& DamageToTake,
+	                                 const AActor* DamagedActor);
 
 	UFUNCTION(BlueprintPure, Category="Damage Resistance")
 	static bool HasAnyResistance(const FJuicyDamageResistance& DamageResistance);

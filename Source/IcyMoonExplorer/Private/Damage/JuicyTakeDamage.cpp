@@ -1,7 +1,15 @@
 ﻿#include "Damage/JuicyTakeDamage.h"
 
+namespace Detail
+{
+	static const UDamageType* DefaultDamageType()
+	{
+		return UDamageType::StaticClass()->GetDefaultObject<UDamageType>();
+	}
+}
+
 FJuicyTakeDamage::FJuicyTakeDamage()
-	: FJuicyTakeDamage{0.0f, nullptr, nullptr, nullptr}
+	: FJuicyTakeDamage{0.0f, Detail::DefaultDamageType(), nullptr, nullptr}
 {
 }
 
