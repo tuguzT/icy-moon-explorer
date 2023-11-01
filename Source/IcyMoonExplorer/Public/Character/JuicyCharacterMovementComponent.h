@@ -63,6 +63,34 @@ public:
 		meta=(ClampMin="0", UIMin="0"))
 	uint8 MantleWallCheckFrequency;
 
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float WallRunMinHorizontalSpeed;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float WallRunMaxVerticalSpeed;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
+	float MaxWallRunDistance;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float MaxWallRunSpeed;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
+	float MinWallRunHeight;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float JumpOffWallVerticalVelocity;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0.0", ClampMax="180.0", UIMin = "0.0", UIMax = "180.0", ForceUnits="degrees"))
+	float WallRunMinPullAwayAngle;
+
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
 
@@ -72,6 +100,12 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToMantle : 1;
 
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bIsMantling : 1;
+
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bIsRunningOnRightWall : 1;
+
 	explicit UJuicyCharacterMovementComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -80,7 +114,8 @@ public:
 
 	virtual void SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode = 0) override;
 	virtual void SetMovementMode(EJuicyCharacterMovementMode NewMovementMode, uint8 NewCustomMode = 0);
-	virtual bool IsMovementMode(EJuicyCharacterMovementMode IsMovementMode, uint8 NewCustomMode = 0) const;
+	virtual bool IsMovementMode(EMovementMode IsMovementMode, uint8 IsCustomMode = 0) const;
+	virtual bool IsMovementMode(EJuicyCharacterMovementMode IsMovementMode, uint8 IsCustomMode = 0) const;
 
 	virtual void Slide();
 	virtual void UnSlide();
@@ -99,8 +134,13 @@ public:
 	virtual bool CanMantleInCurrentState() const;
 	virtual void ExitMantling();
 
+	virtual bool IsWallRunning() const;
+	virtual bool CanWallRunInCurrentState() const;
+	virtual bool IsRunningOnRightWall() const;
+
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual bool CanAttemptJump() const override;
+	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual bool IsMovingOnGround() const override;
 	virtual float GetMaxSpeed() const override;
@@ -110,8 +150,10 @@ public:
 protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
+	virtual void PhysWallRun(float DeltaTime, int32 Iterations);
 
-	virtual bool TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit);
+	virtual bool TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit) const;
+	virtual bool TryWallRun(FHitResult& FloorHit, FHitResult& WallHit) const;
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
@@ -123,8 +165,6 @@ private:
 	FTimerHandle TimerHandleForDashDuration;
 	FTimerHandle TimerHandleForDashCooldown;
 	FVector CurrentDashDirection;
-
-	uint8 bIsMantling : 1;
 
 	bool HasInput() const;
 	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
@@ -138,4 +178,7 @@ private:
 	void EndDashCooldown();
 
 	void StartMantle();
+
+	void StartWallRun();
+	bool CheckWallExists(FHitResult& WallHit, bool bCheckAtRight) const;
 };

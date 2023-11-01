@@ -10,6 +10,7 @@ namespace Detail
 {
 	constexpr auto NoneMode = static_cast<uint8>(EJuicyCharacterMovementMode::None);
 	constexpr auto SlideMode = static_cast<uint8>(EJuicyCharacterMovementMode::Slide);
+	constexpr auto WallRunMode = static_cast<uint8>(EJuicyCharacterMovementMode::WallRun);
 	constexpr auto CustomMode = static_cast<uint8>(EJuicyCharacterMovementMode::Custom);
 
 	constexpr uint8 PrefixForMovementMode(const EJuicyCharacterMovementMode MovementMode)
@@ -44,6 +45,9 @@ namespace Detail
 UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	constexpr float DefaultCapsuleHalfHeight = 88.0f;
+	constexpr float DefaultCapsuleRadius = 34.0f;
+
 	NavAgentProps.bCanCrouch = true;
 
 	MaxSlideSpeed = MaxWalkSpeed * 2.0f;
@@ -57,14 +61,23 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	DashCooldown = 1.0f;
 	bWantsToDash = false;
 
-	MantleMaxDistance = 100.0f;
-	MantleReachHeight = 50.0f;
+	MantleMaxDistance = DefaultCapsuleRadius;
+	MantleReachHeight = DefaultCapsuleHalfHeight;
 	MantleMinSteepnessAngle = 75.0f;
 	MantleMaxSurfaceAngle = 40.0f;
 	MantleMaxAlignmentAngle = 45.0f;
 	MantleWallCheckFrequency = 5;
 	bWantsToMantle = false;
 	bIsMantling = false;
+
+	WallRunMinHorizontalSpeed = MaxWalkSpeed * 0.5f;
+	WallRunMaxVerticalSpeed = JumpZVelocity * 0.5f;
+	MaxWallRunDistance = DefaultCapsuleRadius;
+	MaxWallRunSpeed = MaxWalkSpeed;
+	MinWallRunHeight = DefaultCapsuleHalfHeight;
+	JumpOffWallVerticalVelocity = JumpZVelocity * 0.5f;
+	WallRunMinPullAwayAngle = 75.0f;
+	bIsRunningOnRightWall = false;
 }
 
 AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
@@ -85,10 +98,20 @@ void UJuicyCharacterMovementComponent::SetMovementMode(const EJuicyCharacterMove
 	Super::SetMovementMode(MOVE_Custom, CustomMode);
 }
 
-bool UJuicyCharacterMovementComponent::IsMovementMode(const EJuicyCharacterMovementMode IsMovementMode,
-                                                      const uint8 NewCustomMode) const
+bool UJuicyCharacterMovementComponent::IsMovementMode(const EMovementMode IsMovementMode,
+                                                      const uint8 IsCustomMode) const
 {
-	const uint8 CustomMode = Detail::NewCustomModeWithPrefix(IsMovementMode, NewCustomMode);
+	if (MovementMode != IsMovementMode)
+	{
+		return false;
+	}
+	return MovementMode != MOVE_Custom || CustomMovementMode == IsCustomMode;
+}
+
+bool UJuicyCharacterMovementComponent::IsMovementMode(const EJuicyCharacterMovementMode IsMovementMode,
+                                                      const uint8 IsCustomMode) const
+{
+	const uint8 CustomMode = Detail::NewCustomModeWithPrefix(IsMovementMode, IsCustomMode);
 	return MovementMode == MOVE_Custom && CustomMovementMode == CustomMode;
 }
 
@@ -224,6 +247,21 @@ void UJuicyCharacterMovementComponent::ExitMantling()
 	GetJuicyCharacterOwner()->OnEndMantle();
 }
 
+bool UJuicyCharacterMovementComponent::IsWallRunning() const
+{
+	return IsMovementMode(EJuicyCharacterMovementMode::WallRun);
+}
+
+bool UJuicyCharacterMovementComponent::CanWallRunInCurrentState() const
+{
+	return HasInput() && IsFalling();
+}
+
+bool UJuicyCharacterMovementComponent::IsRunningOnRightWall() const
+{
+	return IsWallRunning() && bIsRunningOnRightWall;
+}
+
 FNetworkPredictionData_Client* UJuicyCharacterMovementComponent::GetPredictionData_Client() const
 {
 	if (ClientPredictionData == nullptr)
@@ -239,7 +277,25 @@ bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 	return Super::CanAttemptJump()
 		&& !IsSliding()
 		&& !IsDashing()
-		&& !IsMantling();
+		&& !IsMantling()
+		|| IsWallRunning();
+}
+
+bool UJuicyCharacterMovementComponent::DoJump(const bool bReplayingMoves)
+{
+	const bool bWasWallRunning = IsWallRunning();
+	if (!Super::DoJump(bReplayingMoves))
+	{
+		return false;
+	}
+
+	if (bWasWallRunning)
+	{
+		FHitResult WallHit;
+		CheckWallExists(WallHit, bIsRunningOnRightWall);
+		Velocity += WallHit.Normal * JumpOffWallVerticalVelocity;
+	}
+	return true;
 }
 
 void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const float DeltaSeconds)
@@ -261,7 +317,7 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 	}
 
 	// Mantling
-	if (!IsMantling() && bWantsToMantle && CanMantleInCurrentState())
+	if (bWantsToMantle && CanMantleInCurrentState())
 	{
 		StartMantle();
 	}
@@ -270,6 +326,12 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 		Acceleration = FVector::ZeroVector;
 		Velocity = FVector::ZeroVector;
 		Super::SetMovementMode(MOVE_Flying);
+	}
+
+	// Wall running
+	if (CanWallRunInCurrentState())
+	{
+		StartWallRun();
 	}
 
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -294,6 +356,8 @@ float UJuicyCharacterMovementComponent::GetMaxSpeed() const
 	{
 	case Detail::SlideMode:
 		return MaxSlideSpeed;
+	case Detail::WallRunMode:
+		return MaxWallRunSpeed;
 	case Detail::CustomMode:
 		return MaxCustomMovementSpeed;
 	default:
@@ -336,6 +400,9 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 		break;
 	case Detail::SlideMode:
 		PhysSlide(DeltaTime, Iterations);
+		break;
+	case Detail::WallRunMode:
+		PhysWallRun(DeltaTime, Iterations);
 		break;
 	case Detail::CustomMode:
 		// user can fall back to custom implementation
@@ -577,8 +644,19 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 	}
 }
 
-bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit)
+void UJuicyCharacterMovementComponent::PhysWallRun(float DeltaTime, int32 Iterations)
 {
+	// TODO
+}
+
+bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit) const
+{
+	if (!CanMantleInCurrentState())
+	{
+		return false;
+	}
+
+	const UWorld* World = GetWorld();
 	const AJuicyCharacter* Owner = GetJuicyCharacterOwner();
 	const UCapsuleComponent* Capsule = Owner->GetCapsuleComponent();
 	const float Radius = Capsule->GetScaledCapsuleRadius();
@@ -590,7 +668,7 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 	const float CosMaxSurfaceAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxSurfaceAngle));
 	const float CosMaxAlignmentAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxAlignmentAngle));
 	const auto ProfileName = TEXT("BlockAll");
-	const auto CollisionQueryParams = Detail::CollisionQueryParamsWithoutActor(Owner);
+	const auto Params = Detail::CollisionQueryParamsWithoutActor(Owner);
 
 	// Check wall
 	FVector FrontStart = FeetLocation + FVector::UpVector * (MaxStepHeight - 1);
@@ -598,11 +676,11 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 	const FVector CheckStep = FVector::UpVector * CheckStepHeight;
 	for (decltype(MantleWallCheckFrequency) i = 0; i < MantleWallCheckFrequency + 1; ++i)
 	{
-		const FVector FrontEnd = FrontStart + FrontDirection * MantleMaxDistance;
+		const FVector FrontEnd = FrontStart + FrontDirection * (Radius + MantleMaxDistance);
 		// ReSharper disable once CppTooWideScope
-		const bool bIsFrontTraceSuccessful = GetWorld()->LineTraceSingleByProfile(
-			FrontHit, FrontStart, FrontEnd, ProfileName, CollisionQueryParams);
-		if (bIsFrontTraceSuccessful)
+		const bool bFrontWasHit = World->LineTraceSingleByProfile(
+			FrontHit, FrontStart, FrontEnd, ProfileName, Params);
+		if (bFrontWasHit)
 		{
 			break;
 		}
@@ -629,9 +707,9 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 		+ WallUpDirection * (MaxReachHeight - (MaxStepHeight - 1)) / WallSin;
 	const FVector SurfaceEnd = FrontHit.Location + FrontDirection;
 	// ReSharper disable once CppTooWideScopeInitStatement
-	const bool bIsSurfaceTraceSuccessful = GetWorld()->LineTraceMultiByProfile(
-		HeightHits, SurfaceStart, SurfaceEnd, ProfileName, CollisionQueryParams);
-	if (!bIsSurfaceTraceSuccessful)
+	const bool bSurfaceWasHit = World->LineTraceMultiByProfile(
+		HeightHits, SurfaceStart, SurfaceEnd, ProfileName, Params);
+	if (!bSurfaceWasHit)
 	{
 		return false;
 	}
@@ -662,9 +740,75 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 		+ FVector::UpVector * (HalfHeight + 1 + Radius * 2 * SurfaceSin);
 	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 	// ReSharper disable once CppTooWideScope
-	const bool ShapeOverlaps = GetWorld()->OverlapAnyTestByProfile(
-		CapsuleLocation, FQuat::Identity, ProfileName, CapsuleShape, CollisionQueryParams);
+	const bool ShapeOverlaps = World->OverlapAnyTestByProfile(
+		CapsuleLocation, FQuat::Identity, ProfileName, CapsuleShape, Params);
 	if (ShapeOverlaps)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool UJuicyCharacterMovementComponent::TryWallRun(FHitResult& FloorHit, FHitResult& WallHit) const
+{
+	if (!CanWallRunInCurrentState())
+	{
+		return false;
+	}
+	// Check if horizontal velocity is enough to start wall run
+	if (Velocity.SizeSquared2D() < FMath::Pow(WallRunMinHorizontalSpeed, 2))
+	{
+		return false;
+	}
+	// Check if vertical velocity is not too high to start wall run
+	if (FMath::Abs(Velocity.Z) > WallRunMaxVerticalSpeed)
+	{
+		return false;
+	}
+
+	const UWorld* World = GetWorld();
+	const AJuicyCharacter* Owner = GetJuicyCharacterOwner();
+	const UCapsuleComponent* Capsule = Owner->GetCapsuleComponent();
+	const float Radius = Capsule->GetScaledCapsuleRadius();
+	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+	const FVector Start = UpdatedComponent->GetComponentLocation();
+	const FVector DistanceToWall = UpdatedComponent->GetRightVector() * (Radius + MaxWallRunDistance);
+	const FVector FloorEnd = Start + FVector::DownVector * (HalfHeight + MinWallRunHeight);
+	const FVector LeftEnd = Start - DistanceToWall;
+	const FVector RightEnd = Start + DistanceToWall;
+	const auto ProfileName = TEXT("BlockAll");
+	const auto Params = Detail::CollisionQueryParamsWithoutActor(Owner);
+
+	// ReSharper disable once CppTooWideScope
+	const bool bFloorWasHit = World->LineTraceSingleByProfile(FloorHit, Start, FloorEnd, ProfileName, Params);
+	if (bFloorWasHit)
+	{
+		return false;
+	}
+
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const bool bLeftWasHit = World->LineTraceSingleByProfile(WallHit, Start, LeftEnd, ProfileName, Params)
+		&& WallHit.IsValidBlockingHit()
+		&& (Velocity | WallHit.Normal) < 0
+		&& (Acceleration | WallHit.Normal) < 0;
+	if (!bLeftWasHit)
+	{
+		// ReSharper disable once CppTooWideScopeInitStatement
+		const bool bRightWasHit = World->LineTraceSingleByProfile(WallHit, Start, RightEnd, ProfileName, Params)
+			&& WallHit.IsValidBlockingHit()
+			&& (Velocity | WallHit.Normal) < 0
+			&& (Acceleration | WallHit.Normal) < 0;
+		if (!bRightWasHit)
+		{
+			return false;
+		}
+	}
+
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const FVector ProjectedVelocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
+	// Check if projected velocity is enough to start wall run
+	if (ProjectedVelocity.SizeSquared2D() < FMath::Pow(WallRunMinHorizontalSpeed, 2))
 	{
 		return false;
 	}
@@ -688,16 +832,21 @@ void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode
 {
 	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 
+	const auto JuicyCharacterOwner = GetJuicyCharacterOwner();
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::SlideMode)
 	{
 		UnSlide();
-		GetJuicyCharacterOwner()->OnEndSlide();
+		JuicyCharacterOwner->OnEndSlide();
+	}
+	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::WallRunMode)
+	{
+		JuicyCharacterOwner->OnEndWallRun();
 	}
 
 	if (IsSliding())
 	{
 		Slide();
-		GetJuicyCharacterOwner()->OnStartSlide();
+		JuicyCharacterOwner->OnStartSlide();
 		bCrouchMaintainsBaseLocation = true;
 	}
 }
@@ -785,8 +934,7 @@ void UJuicyCharacterMovementComponent::StartMantle()
 	const auto JuicyCharacterOwner = GetJuicyCharacterOwner();
 
 	FHitResult FrontHit, SurfaceHit;
-	if (const bool bIsMantlingSuccessful = TryMantle(FrontHit, SurfaceHit);
-		!bIsMantlingSuccessful)
+	if (!TryMantle(FrontHit, SurfaceHit))
 	{
 		return;
 	}
@@ -798,4 +946,35 @@ void UJuicyCharacterMovementComponent::StartMantle()
 	Acceleration = FVector::ZeroVector;
 	Velocity = FVector::ZeroVector;
 	Super::SetMovementMode(MOVE_Flying);
+}
+
+void UJuicyCharacterMovementComponent::StartWallRun()
+{
+	FHitResult FloorHit, WallHit;
+	if (!TryWallRun(FloorHit, WallHit))
+	{
+		return;
+	}
+
+	FHitResult CheckDirectionHit;
+	bIsRunningOnRightWall = CheckWallExists(CheckDirectionHit, true);
+	Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
+	Velocity.Z = FMath::Clamp(Velocity.Z, 0.0f, WallRunMaxVerticalSpeed);
+	GetJuicyCharacterOwner()->OnStartWallRun(FloorHit, WallHit);
+	SetMovementMode(EJuicyCharacterMovementMode::WallRun);
+}
+
+bool UJuicyCharacterMovementComponent::CheckWallExists(FHitResult& WallHit, const bool bCheckAtRight) const
+{
+	const AJuicyCharacter* Owner = GetJuicyCharacterOwner();
+	const UCapsuleComponent* Capsule = Owner->GetCapsuleComponent();
+	const float Radius = Capsule->GetScaledCapsuleRadius();
+
+	const FVector Start = UpdatedComponent->GetComponentLocation();
+	const FVector DistanceToWall = UpdatedComponent->GetRightVector() * (Radius + MaxWallRunDistance);
+	const FVector End = bCheckAtRight ? Start + DistanceToWall : Start - DistanceToWall;
+	const auto ProfileName = TEXT("BlockAll");
+	const auto Params = Detail::CollisionQueryParamsWithoutActor(Owner);
+
+	return GetWorld()->LineTraceSingleByProfile(WallHit, Start, End, ProfileName, Params);
 }

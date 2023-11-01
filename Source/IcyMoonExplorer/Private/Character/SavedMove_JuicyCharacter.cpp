@@ -8,6 +8,8 @@ FSavedMove_JuicyCharacter::FSavedMove_JuicyCharacter()
 	bWantsToSlide = false;
 	bWantsToDash = false;
 	bWantsToMantle = false;
+	bIsMantling = false;
+	bIsRunningOnRightWall = false;
 }
 
 FSavedMove_JuicyCharacter::~FSavedMove_JuicyCharacter()
@@ -19,14 +21,18 @@ bool FSavedMove_JuicyCharacter::CanCombineWith(const FSavedMovePtr& NewMove, ACh
 {
 	const auto* NewJuicyMove = static_cast<FSavedMove_JuicyCharacter*>(NewMove.Get());
 
-	const bool CanCombineSlide = NewJuicyMove->bWantsToSlide == bWantsToSlide;
-	const bool CanCombineDash = NewJuicyMove->bWantsToDash == bWantsToDash;
-	const bool CanCombineMantle = NewJuicyMove->bWantsToMantle == bWantsToMantle;
+	const bool bCombineSlide = NewJuicyMove->bWantsToSlide == bWantsToSlide;
+	const bool bCombineDash = NewJuicyMove->bWantsToDash == bWantsToDash;
+	const bool bCombineMantle = NewJuicyMove->bWantsToMantle == bWantsToMantle;
+	const bool bCombineMantling = NewJuicyMove->bIsMantling == bIsMantling;
+	const bool bCombineRunningOnRightWall = NewJuicyMove->bIsRunningOnRightWall == bIsRunningOnRightWall;
 
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta)
-		&& CanCombineSlide
-		&& CanCombineDash
-		&& CanCombineMantle;
+		&& bCombineSlide
+		&& bCombineDash
+		&& bCombineMantle
+		&& bCombineMantling
+		&& bCombineRunningOnRightWall;
 }
 
 void FSavedMove_JuicyCharacter::Clear()
@@ -36,6 +42,8 @@ void FSavedMove_JuicyCharacter::Clear()
 	bWantsToSlide = false;
 	bWantsToDash = false;
 	bWantsToMantle = false;
+	bIsMantling = false;
+	bIsRunningOnRightWall = false;
 }
 
 uint8 FSavedMove_JuicyCharacter::GetCompressedFlags() const
@@ -52,6 +60,8 @@ void FSavedMove_JuicyCharacter::SetMoveFor(ACharacter* C, const float InDeltaTim
 	bWantsToSlide = CharacterMovement->bWantsToSlide;
 	bWantsToDash = CharacterMovement->bWantsToDash;
 	bWantsToMantle = CharacterMovement->bWantsToMantle;
+	bIsMantling = CharacterMovement->bIsMantling;
+	bIsRunningOnRightWall = CharacterMovement->bIsRunningOnRightWall;
 }
 
 void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
@@ -62,4 +72,6 @@ void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
 	CharacterMovement->bWantsToSlide = bWantsToSlide;
 	CharacterMovement->bWantsToDash = bWantsToDash;
 	CharacterMovement->bWantsToMantle = bWantsToMantle;
+	CharacterMovement->bIsMantling = bIsMantling;
+	CharacterMovement->bIsRunningOnRightWall = bIsRunningOnRightWall;
 }

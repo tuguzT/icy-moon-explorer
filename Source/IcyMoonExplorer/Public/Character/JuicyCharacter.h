@@ -94,6 +94,25 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndMantle", ScriptName="OnEndMantle"))
 	void K2_OnEndMantle();
 
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsWallRunning() const;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool CanWallRun() const;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsRunningOnRightWall() const;
+
+	virtual void OnStartWallRun(const FHitResult& FloorHit, const FHitResult& WallHit);
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartWallRun", ScriptName="OnStartWallRun"))
+	void K2_OnStartWallRun(const FHitResult& FloorHit, const FHitResult& WallHit);
+
+	virtual void OnEndWallRun();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndWallRun", ScriptName="OnEndWallRun"))
+	void K2_OnEndWallRun();
+
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Landed(const FHitResult& Hit) override;
