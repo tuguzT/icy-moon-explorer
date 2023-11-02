@@ -72,28 +72,32 @@ public:
 	float WallRunMaxVerticalSpeed;
 
 	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
-	float MaxWallRunDistance;
-
-	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxWallRunSpeed;
 
 	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
-	float MinWallRunHeight;
-
-	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
-	float WallRunAttractionForce;
-
-	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
-	float JumpOffWallVerticalVelocity;
-
-	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
 	float WallRunMinPullAwayAngle;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float MaxWallHangSpeed;
+
+	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
+	float MaxWallDistance;
+
+	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
+	float MinHeightAboveFloor;
+
+	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float WallAttractionForce;
+
+	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float JumpOffWallVerticalVelocity;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
@@ -108,7 +112,7 @@ public:
 	uint8 bIsMantling : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
-	uint8 bIsRunningOnRightWall : 1;
+	uint8 bIsOnRightWall : 1;
 
 	explicit UJuicyCharacterMovementComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -142,6 +146,10 @@ public:
 	virtual bool CanWallRunInCurrentState() const;
 	virtual bool IsRunningOnRightWall() const;
 
+	virtual bool IsWallHanging() const;
+	virtual bool CanWallHangInCurrentState() const;
+	virtual bool IsHangingOnRightWall() const;
+
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual bool CanAttemptJump() const override;
 	virtual bool DoJump(bool bReplayingMoves) override;
@@ -155,9 +163,11 @@ protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 	virtual void PhysWallRun(float DeltaTime, int32 Iterations);
+	virtual void PhysWallHang(float DeltaTime, int32 Iterations);
 
 	virtual bool TryMantle(FHitResult& FrontHit, FHitResult& SurfaceHit) const;
 	virtual bool TryWallRun(FHitResult& FloorHit, FHitResult& WallHit) const;
+	virtual bool TryWallHang(FHitResult& FloorHit, FHitResult& WallHit) const;
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
@@ -184,5 +194,8 @@ private:
 	void StartMantle();
 
 	void StartWallRun();
+	void StartWallHang();
+
 	bool CheckWallExists(FHitResult& WallHit, bool bCheckAtRight) const;
+	bool CheckWallExists(FHitResult& WallHit, const FVector& Direction) const;
 };

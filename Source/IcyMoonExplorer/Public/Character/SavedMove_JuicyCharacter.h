@@ -12,7 +12,7 @@ public:
 	uint8 bWantsToDash : 1;
 	uint8 bWantsToMantle : 1;
 	uint8 bIsMantling : 1;
-	uint8 bIsRunningOnRightWall : 1;
+	uint8 bIsOnRightWall : 1;
 
 	FSavedMove_JuicyCharacter();
 	virtual ~FSavedMove_JuicyCharacter() override;

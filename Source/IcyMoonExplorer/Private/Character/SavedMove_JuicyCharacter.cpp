@@ -9,7 +9,7 @@ FSavedMove_JuicyCharacter::FSavedMove_JuicyCharacter()
 	bWantsToDash = false;
 	bWantsToMantle = false;
 	bIsMantling = false;
-	bIsRunningOnRightWall = false;
+	bIsOnRightWall = false;
 }
 
 FSavedMove_JuicyCharacter::~FSavedMove_JuicyCharacter()
@@ -25,14 +25,14 @@ bool FSavedMove_JuicyCharacter::CanCombineWith(const FSavedMovePtr& NewMove, ACh
 	const bool bCombineDash = NewJuicyMove->bWantsToDash == bWantsToDash;
 	const bool bCombineMantle = NewJuicyMove->bWantsToMantle == bWantsToMantle;
 	const bool bCombineMantling = NewJuicyMove->bIsMantling == bIsMantling;
-	const bool bCombineRunningOnRightWall = NewJuicyMove->bIsRunningOnRightWall == bIsRunningOnRightWall;
+	const bool bCombineOnRightWall = NewJuicyMove->bIsOnRightWall == bIsOnRightWall;
 
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta)
 		&& bCombineSlide
 		&& bCombineDash
 		&& bCombineMantle
 		&& bCombineMantling
-		&& bCombineRunningOnRightWall;
+		&& bCombineOnRightWall;
 }
 
 void FSavedMove_JuicyCharacter::Clear()
@@ -43,7 +43,7 @@ void FSavedMove_JuicyCharacter::Clear()
 	bWantsToDash = false;
 	bWantsToMantle = false;
 	bIsMantling = false;
-	bIsRunningOnRightWall = false;
+	bIsOnRightWall = false;
 }
 
 uint8 FSavedMove_JuicyCharacter::GetCompressedFlags() const
@@ -61,7 +61,7 @@ void FSavedMove_JuicyCharacter::SetMoveFor(ACharacter* C, const float InDeltaTim
 	bWantsToDash = CharacterMovement->bWantsToDash;
 	bWantsToMantle = CharacterMovement->bWantsToMantle;
 	bIsMantling = CharacterMovement->bIsMantling;
-	bIsRunningOnRightWall = CharacterMovement->bIsRunningOnRightWall;
+	bIsOnRightWall = CharacterMovement->bIsOnRightWall;
 }
 
 void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
@@ -73,5 +73,5 @@ void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
 	CharacterMovement->bWantsToDash = bWantsToDash;
 	CharacterMovement->bWantsToMantle = bWantsToMantle;
 	CharacterMovement->bIsMantling = bIsMantling;
-	CharacterMovement->bIsRunningOnRightWall = bIsRunningOnRightWall;
+	CharacterMovement->bIsOnRightWall = bIsOnRightWall;
 }

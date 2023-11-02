@@ -173,6 +173,34 @@ void AJuicyCharacter::OnEndWallRun()
 	K2_OnEndWallRun();
 }
 
+bool AJuicyCharacter::IsWallHanging() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsWallHanging();
+}
+
+bool AJuicyCharacter::CanWallHang() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->CanWallHangInCurrentState();
+}
+
+bool AJuicyCharacter::IsHangingOnRightWall() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsHangingOnRightWall();
+}
+
+void AJuicyCharacter::OnStartWallHang(const FHitResult& FloorHit, const FHitResult& WallHit)
+{
+	K2_OnStartWallHang(FloorHit, WallHit);
+}
+
+void AJuicyCharacter::OnEndWallHang()
+{
+	K2_OnEndWallHang();
+}
+
 void AJuicyCharacter::OnMovementModeChanged(const EMovementMode PrevMovementMode, const uint8 PreviousCustomMode)
 {
 	if (const bool bWasNotFlying = PrevMovementMode != MOVE_Flying;
