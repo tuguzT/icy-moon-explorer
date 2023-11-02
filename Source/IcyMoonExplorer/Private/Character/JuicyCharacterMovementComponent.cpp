@@ -77,10 +77,13 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	MaxWallRunSpeed = MaxWalkSpeed;
 	WallRunMinPullAwayAngle = 75.0f;
 	WallRunGravityScale = 0.0f;
+	WallRunMaxGravityVelocity = 100.0f;
 
 	MaxWallHangSpeed = MaxWalkSpeed;
 	WallHangGravityScale = 0.0f;
 	WallHangCheckAroundCount = 4;
+	WallHangMaxGravityVelocity = 100.0f;
+	BrakingDecelerationWallHanging = BrakingDecelerationWalking;
 
 	MaxWallDistance = DefaultCapsuleRadius;
 	MinHeightAboveFloor = DefaultCapsuleHalfHeight;
@@ -439,6 +442,8 @@ float UJuicyCharacterMovementComponent::GetMaxBrakingDeceleration() const
 	{
 	case Detail::SlideMode:
 		return BrakingDecelerationSliding;
+	case Detail::WallHangMode:
+		return BrakingDecelerationWallHanging;
 	default:
 		return 0.0f;
 	}
@@ -451,6 +456,43 @@ bool UJuicyCharacterMovementComponent::CanWalkOffLedges() const
 		return bCanSlideOffLedges;
 	}
 	return Super::CanWalkOffLedges();
+}
+
+FVector UJuicyCharacterMovementComponent::NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity,
+                                                          const float DeltaTime) const
+{
+	FVector Result = Super::NewFallVelocity(InitialVelocity, Gravity, DeltaTime);
+
+	if (DeltaTime > 0.0f)
+	{
+		// Calculate limit, if exists.
+		float Limit;
+		if (IsWallRunning())
+		{
+			Limit = FMath::Abs(WallRunMaxGravityVelocity);
+		}
+		else if (IsWallHanging())
+		{
+			Limit = FMath::Abs(WallHangMaxGravityVelocity);
+		}
+		else
+		{
+			return Result;
+		}
+
+		// Don't exceed limit.
+		if (Result.SizeSquared() > FMath::Square(Limit))
+		{
+			// ReSharper disable once CppTooWideScopeInitStatement
+			const FVector GravityDir = Gravity.GetSafeNormal();
+			if ((Result | GravityDir) > Limit)
+			{
+				Result = FVector::PointPlaneProject(Result, FVector::ZeroVector, GravityDir) + GravityDir * Limit;
+			}
+		}
+	}
+
+	return Result;
 }
 
 void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const int32 Iterations)
@@ -860,7 +902,6 @@ void UJuicyCharacterMovementComponent::PhysWallHang(const float DeltaTime, int32
 		// Apply acceleration
 		CalcVelocity(TimeTick, 0.0f, false, GetMaxBrakingDeceleration());
 		Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
-		Acceleration = FVector::ZeroVector;
 
 		// Apply gravity
 		const FVector Gravity = -GetGravityDirection() * GetGravityZ();

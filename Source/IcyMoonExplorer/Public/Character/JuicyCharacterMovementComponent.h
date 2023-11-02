@@ -85,6 +85,10 @@ public:
 	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite)
 	float WallRunGravityScale;
 
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float WallRunMaxGravityVelocity;
+
 	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxWallHangSpeed;
@@ -95,6 +99,14 @@ public:
 	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0"))
 	uint8 WallHangCheckAroundCount;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float WallHangMaxGravityVelocity;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationWallHanging;
 
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
@@ -172,6 +184,8 @@ public:
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	virtual bool CanWalkOffLedges() const override;
+	virtual FVector NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity,
+	                                float DeltaTime) const override;
 
 protected:
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
