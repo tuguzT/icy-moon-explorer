@@ -39,6 +39,9 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
 	float DashCooldown;
 
+	UPROPERTY(Category="Character Movement: Dashing", EditAnywhere, BlueprintReadWrite)
+	float DashGravityScale;
+
 	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
 	float MantleMaxDistance;
@@ -79,9 +82,19 @@ public:
 		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
 	float WallRunMinPullAwayAngle;
 
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite)
+	float WallRunGravityScale;
+
 	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxWallHangSpeed;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite)
+	float WallHangGravityScale;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0"))
+	uint8 WallHangCheckAroundCount;
 
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
@@ -151,6 +164,7 @@ public:
 	virtual bool IsHangingOnRightWall() const;
 
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	virtual float GetGravityZ() const override;
 	virtual bool CanAttemptJump() const override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
@@ -196,6 +210,8 @@ private:
 	void StartWallRun();
 	void StartWallHang();
 
+	bool CheckFloorExists(FHitResult& FloorHit) const;
+	bool CheckWallExists(FHitResult& WallHit) const;
 	bool CheckWallExists(FHitResult& WallHit, bool bCheckAtRight) const;
 	bool CheckWallExists(FHitResult& WallHit, const FVector& Direction) const;
 };
