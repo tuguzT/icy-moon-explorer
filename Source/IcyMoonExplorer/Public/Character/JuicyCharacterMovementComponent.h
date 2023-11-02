@@ -85,10 +85,14 @@ public:
 
 	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float WallRunAttractionForce;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float JumpOffWallVerticalVelocity;
 
 	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0.0", ClampMax="180.0", UIMin = "0.0", UIMax = "180.0", ForceUnits="degrees"))
+		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
 	float WallRunMinPullAwayAngle;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
