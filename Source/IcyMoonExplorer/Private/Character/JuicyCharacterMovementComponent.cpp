@@ -960,7 +960,7 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 	const float Radius = Capsule->GetScaledCapsuleRadius();
 	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
 	const float MaxReachHeight = HalfHeight * 2.0f + MantleReachHeight;
-	const FVector FrontDirection = Acceleration.GetSafeNormal2D();
+	const FVector FrontDirection = UpdatedComponent->GetForwardVector();
 	const FVector FeetLocation = UpdatedComponent->GetComponentLocation() + FVector::DownVector * HalfHeight;
 	const float CosMinSteepnessAngle = FMath::Cos(FMath::DegreesToRadians(MantleMinSteepnessAngle));
 	const float CosMaxSurfaceAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxSurfaceAngle));
@@ -1130,7 +1130,6 @@ bool UJuicyCharacterMovementComponent::TryWallHang(FHitResult& FloorHit, FHitRes
 	const bool bFloorWasHit = CheckFloorExists(FloorHit, WallHit);
 	if (bFloorWasHit || FloorHit.IsValidBlockingHit())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Floor detected"));
 		return false;
 	}
 
