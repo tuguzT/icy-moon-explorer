@@ -114,6 +114,10 @@ public:
 
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
+	float WallMinSteepnessAngle;
+
+	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
 	float WallMinPullAwayAngle;
 
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
@@ -224,7 +228,7 @@ private:
 	void StartWallRun();
 	void StartWallHang();
 
-	bool CheckFloorExists(FHitResult& FloorHit) const;
+	bool CheckFloorExists(FHitResult& FloorHit, const FHitResult& WallHit) const;
 	bool CheckWallExists(FHitResult& WallHit) const;
 	bool CheckWallExists(FHitResult& WallHit, bool bCheckAtRight) const;
 	bool CheckWallExists(FHitResult& WallHit, const FVector& Direction) const;

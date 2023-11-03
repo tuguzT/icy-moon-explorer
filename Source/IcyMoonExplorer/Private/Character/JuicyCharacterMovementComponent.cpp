@@ -65,7 +65,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 
 	MantleMaxDistance = DefaultCapsuleRadius;
 	MantleReachHeight = DefaultCapsuleHalfHeight;
-	MantleMinSteepnessAngle = 75.0f;
+	MantleMinSteepnessAngle = GetWalkableFloorAngle();
 	MantleMaxSurfaceAngle = 40.0f;
 	MantleMaxAlignmentAngle = 45.0f;
 	MantleWallCheckFrequency = 5;
@@ -86,6 +86,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 
 	MaxWallDistance = DefaultCapsuleRadius;
 	MinHeightAboveFloor = DefaultCapsuleHalfHeight;
+	WallMinSteepnessAngle = GetWalkableFloorAngle();
 	JumpOffWallVerticalVelocity = JumpZVelocity * 0.5f;
 	WallMinPullAwayAngle = 75.0f;
 	WallAttractionForce = JumpZVelocity * 0.5f;
@@ -815,6 +816,7 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 		// Apply gravity
 		const FVector Gravity = -GetGravityDirection() * GetGravityZ();
 		Velocity = NewFallVelocity(Velocity, Gravity, TimeTick);
+		Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
 
 		// Apply actual movement
 		if (const FVector Delta = Velocity * TimeTick;
@@ -843,9 +845,9 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 
 	// Check invariants of wall run mode
 	FHitResult FloorHit, WallHit;
-	CheckFloorExists(FloorHit);
 	CheckWallExists(WallHit, bIsOnRightWall);
-	if (FloorHit.IsValidBlockingHit() || !WallHit.IsValidBlockingHit()
+	CheckFloorExists(FloorHit, WallHit);
+	if (!WallHit.IsValidBlockingHit() || FloorHit.IsValidBlockingHit()
 		|| Velocity.SizeSquared2D() < pow(WallRunMinHorizontalSpeed, 2))
 	{
 		SetMovementMode(MOVE_Falling);
@@ -909,6 +911,7 @@ void UJuicyCharacterMovementComponent::PhysWallHang(const float DeltaTime, int32
 		// Apply gravity
 		const FVector Gravity = -GetGravityDirection() * GetGravityZ();
 		Velocity = NewFallVelocity(Velocity, Gravity, TimeTick);
+		Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
 
 		// Apply actual movement
 		if (const FVector Delta = Velocity * TimeTick;
@@ -937,9 +940,9 @@ void UJuicyCharacterMovementComponent::PhysWallHang(const float DeltaTime, int32
 
 	// Check invariants of wall hang mode
 	FHitResult FloorHit, WallHit;
-	CheckFloorExists(FloorHit);
 	CheckWallExists(WallHit);
-	if (FloorHit.IsValidBlockingHit() || !WallHit.IsValidBlockingHit())
+	CheckFloorExists(FloorHit, WallHit);
+	if (!WallHit.IsValidBlockingHit() || FloorHit.IsValidBlockingHit())
 	{
 		SetMovementMode(MOVE_Falling);
 	}
@@ -1063,18 +1066,26 @@ bool UJuicyCharacterMovementComponent::TryWallRun(FHitResult& FloorHit, FHitResu
 	}
 
 	// ReSharper disable once CppTooWideScopeInitStatement
-	const bool bFloorWasHit = CheckFloorExists(FloorHit);
-	if (bFloorWasHit || FloorHit.IsValidBlockingHit())
-	{
-		return false;
-	}
-
-	// ReSharper disable once CppTooWideScopeInitStatement
 	const bool bWallWasHit = CheckWallExists(WallHit, Acceleration.GetSafeNormal2D())
 		&& WallHit.IsValidBlockingHit()
 		&& (Velocity | WallHit.Normal) < 0
 		&& (Acceleration | WallHit.Normal) < 0;
 	if (!bWallWasHit)
+	{
+		return false;
+	}
+
+	const float CosMinSteepnessAngle = FMath::Cos(FMath::RadiansToDegrees(WallMinSteepnessAngle));
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const float CosWallSteepnessAngle = WallHit.Normal.GetSafeNormal2D() | WallHit.Normal;
+	if (FMath::Abs(CosWallSteepnessAngle) < CosMinSteepnessAngle)
+	{
+		return false;
+	}
+
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const bool bFloorWasHit = CheckFloorExists(FloorHit, WallHit);
+	if (bFloorWasHit || FloorHit.IsValidBlockingHit())
 	{
 		return false;
 	}
@@ -1098,19 +1109,28 @@ bool UJuicyCharacterMovementComponent::TryWallHang(FHitResult& FloorHit, FHitRes
 	}
 
 	// ReSharper disable once CppTooWideScopeInitStatement
-	const bool bFloorWasHit = CheckFloorExists(FloorHit);
-	if (bFloorWasHit || FloorHit.IsValidBlockingHit())
-	{
-		return false;
-	}
-
-	// ReSharper disable once CppTooWideScopeInitStatement
 	const bool bWallWasHit = CheckWallExists(WallHit, Acceleration.GetSafeNormal2D())
 		&& WallHit.IsValidBlockingHit()
 		&& (Velocity | WallHit.Normal) < 0
 		&& (Acceleration | WallHit.Normal) < 0;
 	if (!bWallWasHit)
 	{
+		return false;
+	}
+
+	const float CosMinSteepnessAngle = FMath::Cos(FMath::RadiansToDegrees(WallMinSteepnessAngle));
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const float CosWallSteepnessAngle = WallHit.Normal.GetSafeNormal2D() | WallHit.Normal;
+	if (FMath::Abs(CosWallSteepnessAngle) < CosMinSteepnessAngle)
+	{
+		return false;
+	}
+
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const bool bFloorWasHit = CheckFloorExists(FloorHit, WallHit);
+	if (bFloorWasHit || FloorHit.IsValidBlockingHit())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Floor detected"));
 		return false;
 	}
 
@@ -1292,13 +1312,14 @@ void UJuicyCharacterMovementComponent::StartWallHang()
 	SetMovementMode(EJuicyCharacterMovementMode::WallHang);
 }
 
-bool UJuicyCharacterMovementComponent::CheckFloorExists(FHitResult& FloorHit) const
+bool UJuicyCharacterMovementComponent::CheckFloorExists(FHitResult& FloorHit, const FHitResult& WallHit) const
 {
 	const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
 	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
 
 	const FVector Start = UpdatedComponent->GetComponentLocation();
-	const FVector End = Start + FVector::DownVector * (HalfHeight + MinHeightAboveFloor);
+	const FVector WallDown = FVector::VectorPlaneProject(FVector::DownVector, WallHit.Normal).GetSafeNormal();
+	const FVector End = Start + WallDown * (HalfHeight + MinHeightAboveFloor);
 	const auto ProfileName = TEXT("BlockAll");
 	const auto Params = Detail::CollisionQueryParamsWithoutActor(CharacterOwner);
 
