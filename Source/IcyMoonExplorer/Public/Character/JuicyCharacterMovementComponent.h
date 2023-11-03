@@ -78,10 +78,6 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxWallRunSpeed;
 
-	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
-	float WallRunMinPullAwayAngle;
-
 	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite)
 	float WallRunGravityScale;
 
@@ -115,6 +111,10 @@ public:
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
 	float MinHeightAboveFloor;
+
+	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0.0", ClampMax="90.0", UIMin = "0.0", UIMax = "90.0", ForceUnits="degrees"))
+	float WallMinPullAwayAngle;
 
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))

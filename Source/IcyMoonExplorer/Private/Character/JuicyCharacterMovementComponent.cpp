@@ -75,7 +75,6 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	WallRunMinHorizontalSpeed = MaxWalkSpeed * 0.5f;
 	WallRunMaxVerticalSpeed = JumpZVelocity * 0.5f;
 	MaxWallRunSpeed = MaxWalkSpeed;
-	WallRunMinPullAwayAngle = 75.0f;
 	WallRunGravityScale = 0.0f;
 	WallRunMaxGravityVelocity = 100.0f;
 
@@ -88,6 +87,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	MaxWallDistance = DefaultCapsuleRadius;
 	MinHeightAboveFloor = DefaultCapsuleHalfHeight;
 	JumpOffWallVerticalVelocity = JumpZVelocity * 0.5f;
+	WallMinPullAwayAngle = 75.0f;
 	WallAttractionForce = JumpZVelocity * 0.5f;
 
 	bIsOnRightWall = false;
@@ -785,13 +785,11 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 
 		// Check if wall exists
 		FHitResult WallHit;
-		const bool bCanReachWall = CheckWallExists(WallHit, bIsOnRightWall);
-		const float SinMinPullAwayAngle = FMath::Sin(FMath::DegreesToRadians(WallRunMinPullAwayAngle));
+		CheckWallExists(WallHit, bIsOnRightWall);
+		const float SinMinPullAwayAngle = FMath::Sin(FMath::DegreesToRadians(WallMinPullAwayAngle));
 		// ReSharper disable once CppTooWideScopeInitStatement
-		const bool bWantsToPullAway = bCanReachWall
-			&& WallHit.IsValidBlockingHit()
-			&& !Acceleration.IsNearlyZero()
-			&& (Acceleration.GetSafeNormal() | WallHit.Normal) > SinMinPullAwayAngle;
+		const bool bWantsToPullAway = WallHit.IsValidBlockingHit()
+			&& (Acceleration.IsNearlyZero() || (Acceleration.GetSafeNormal() | WallHit.Normal) > SinMinPullAwayAngle);
 		if (!WallHit.IsValidBlockingHit() || bWantsToPullAway)
 		{
 			SetMovementMode(MOVE_Falling);
@@ -888,7 +886,12 @@ void UJuicyCharacterMovementComponent::PhysWallHang(const float DeltaTime, int32
 		// Check if wall exists
 		// ReSharper disable once CppTooWideScopeInitStatement
 		FHitResult WallHit;
-		if (!CheckWallExists(WallHit) || !WallHit.IsValidBlockingHit())
+		CheckWallExists(WallHit);
+		const float SinMinPullAwayAngle = FMath::Sin(FMath::DegreesToRadians(WallMinPullAwayAngle));
+		// ReSharper disable once CppTooWideScopeInitStatement
+		const bool bWantsToPullAway = WallHit.IsValidBlockingHit()
+			&& (Acceleration.IsNearlyZero() || (Acceleration.GetSafeNormal() | WallHit.Normal) > SinMinPullAwayAngle);
+		if (!WallHit.IsValidBlockingHit() || bWantsToPullAway)
 		{
 			SetMovementMode(MOVE_Falling);
 			StartNewPhysics(RemainingTime, Iterations);
