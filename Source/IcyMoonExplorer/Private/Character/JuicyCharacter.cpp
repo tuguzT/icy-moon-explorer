@@ -40,6 +40,12 @@ void AJuicyCharacter::StopSliding()
 	}
 }
 
+bool AJuicyCharacter::IsSliding() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsSliding();
+}
+
 bool AJuicyCharacter::CanSlide() const
 {
 	return JuicyCharacterMovement
@@ -71,6 +77,18 @@ void AJuicyCharacter::StopDashing()
 	{
 		JuicyCharacterMovement->UnDash();
 	}
+}
+
+bool AJuicyCharacter::IsDashing() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsDashing();
+}
+
+bool AJuicyCharacter::IsDashingCooldown() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsDashingCooldown();
 }
 
 bool AJuicyCharacter::CanDash() const
@@ -121,6 +139,12 @@ void AJuicyCharacter::StopMantling()
 	}
 }
 
+bool AJuicyCharacter::IsMantling() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsMantling();
+}
+
 bool AJuicyCharacter::CanMantle() const
 {
 	return JuicyCharacterMovement
@@ -151,6 +175,12 @@ bool AJuicyCharacter::IsWallRunning() const
 		&& JuicyCharacterMovement->IsWallRunning();
 }
 
+bool AJuicyCharacter::IsWallRunningCooldown() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsWallRunningCooldown();
+}
+
 bool AJuicyCharacter::CanWallRun() const
 {
 	return JuicyCharacterMovement
@@ -167,10 +197,26 @@ void AJuicyCharacter::OnEndWallRun()
 	K2_OnEndWallRun();
 }
 
+void AJuicyCharacter::OnStartWallRunCooldown()
+{
+	K2_OnStartWallRunCooldown();
+}
+
+void AJuicyCharacter::OnEndWallRunCooldown()
+{
+	K2_OnEndWallRunCooldown();
+}
+
 bool AJuicyCharacter::IsWallHanging() const
 {
 	return JuicyCharacterMovement
 		&& JuicyCharacterMovement->IsWallHanging();
+}
+
+bool AJuicyCharacter::IsWallHangingCooldown() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsWallHangingCooldown();
 }
 
 bool AJuicyCharacter::CanWallHang() const
@@ -187,6 +233,16 @@ void AJuicyCharacter::OnStartWallHang(const FHitResult& FloorHit, const FHitResu
 void AJuicyCharacter::OnEndWallHang()
 {
 	K2_OnEndWallHang();
+}
+
+void AJuicyCharacter::OnStartWallHangCooldown()
+{
+	K2_OnStartWallHangCooldown();
+}
+
+void AJuicyCharacter::OnEndWallHangCooldown()
+{
+	K2_OnEndWallHangCooldown();
 }
 
 bool AJuicyCharacter::IsOnWall() const

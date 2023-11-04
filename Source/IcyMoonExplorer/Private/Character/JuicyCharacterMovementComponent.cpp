@@ -77,11 +77,13 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	MaxWallRunSpeed = MaxWalkSpeed;
 	WallRunGravityScale = 0.0f;
 	WallRunMaxGravityVelocity = 100.0f;
+	WallRunCooldown = 0.5f;
 
 	MaxWallHangSpeed = MaxWalkSpeed;
 	WallHangGravityScale = 0.0f;
 	WallHangMaxGravityVelocity = 100.0f;
 	BrakingDecelerationWallHanging = BrakingDecelerationWalking;
+	WallHangCooldown = 0.5f;
 
 	MaxWallDistance = DefaultCapsuleRadius;
 	MinHeightAboveFloor = DefaultCapsuleHalfHeight;
@@ -264,12 +266,24 @@ bool UJuicyCharacterMovementComponent::IsWallRunning() const
 	return IsMovementMode(EJuicyCharacterMovementMode::WallRun);
 }
 
+bool UJuicyCharacterMovementComponent::IsWallRunningCooldown() const
+{
+	if (!CharacterOwner)
+	{
+		return false;
+	}
+
+	const FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	return TimerManager.IsTimerActive(TimerHandleForWallRunCooldown);
+}
+
 bool UJuicyCharacterMovementComponent::CanWallRunInCurrentState() const
 {
 	return HasInput()
 		&& IsFalling()
 		&& !IsDashing()
-		&& !IsMantling();
+		&& !IsMantling()
+		&& !IsWallRunningCooldown();
 }
 
 bool UJuicyCharacterMovementComponent::IsWallHanging() const
@@ -277,12 +291,24 @@ bool UJuicyCharacterMovementComponent::IsWallHanging() const
 	return IsMovementMode(EJuicyCharacterMovementMode::WallHang);
 }
 
+bool UJuicyCharacterMovementComponent::IsWallHangingCooldown() const
+{
+	if (!CharacterOwner)
+	{
+		return false;
+	}
+
+	const FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	return TimerManager.IsTimerActive(TimerHandleForWallHangCooldown);
+}
+
 bool UJuicyCharacterMovementComponent::CanWallHangInCurrentState() const
 {
 	return HasInput()
 		&& IsFalling()
 		&& !IsDashing()
-		&& !IsMantling();
+		&& !IsMantling()
+		&& !IsWallHangingCooldown();
 }
 
 bool UJuicyCharacterMovementComponent::IsOnWall() const
@@ -1110,6 +1136,8 @@ bool UJuicyCharacterMovementComponent::TryWallHang(FHitResult& FloorHit, FHitRes
 	// ReSharper disable once CppTooWideScopeInitStatement
 	const bool bWallWasHit = CheckWallExists(WallHit, Acceleration.GetSafeNormal2D())
 		&& WallHit.IsValidBlockingHit()
+		// TODO allow to hang with velocity not pointing on wall
+		// just commenting condition below breaks wall run jump (wall hang fires too, but shouldn't)
 		&& (Velocity | WallHit.Normal) < 0
 		&& (Acceleration | WallHit.Normal) < 0;
 	if (!bWallWasHit)
@@ -1160,10 +1188,12 @@ void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::WallRunMode)
 	{
 		JuicyCharacterOwner->OnEndWallRun();
+		StartWallRunCooldown();
 	}
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::WallHangMode)
 	{
 		JuicyCharacterOwner->OnEndWallHang();
+		StartWallHangCooldown();
 	}
 
 	if (IsSliding())
@@ -1291,8 +1321,29 @@ void UJuicyCharacterMovementComponent::StartWallRun()
 	Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
 	Velocity.Z = FMath::Clamp(Velocity.Z, 0.0f, WallRunMaxVerticalSpeed);
 	ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
-	GetJuicyCharacterOwner()->OnStartWallRun(FloorHit, WallHit);
 	SetMovementMode(EJuicyCharacterMovementMode::WallRun);
+	GetJuicyCharacterOwner()->OnStartWallRun(FloorHit, WallHit);
+}
+
+void UJuicyCharacterMovementComponent::StartWallRunCooldown()
+{
+	if (WallRunCooldown <= 0.0f)
+	{
+		return;
+	}
+
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandleForWallRunCooldown, this,
+	                      &UJuicyCharacterMovementComponent::EndWallRunCooldown,
+	                      WallRunCooldown);
+	GetJuicyCharacterOwner()->OnStartWallRunCooldown();
+}
+
+void UJuicyCharacterMovementComponent::EndWallRunCooldown()
+{
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForWallRunCooldown);
+	GetJuicyCharacterOwner()->OnEndWallRunCooldown();
 }
 
 void UJuicyCharacterMovementComponent::StartWallHang()
@@ -1305,8 +1356,29 @@ void UJuicyCharacterMovementComponent::StartWallHang()
 
 	WallNormal = WallHit.Normal;
 	Velocity = FVector::ZeroVector;
-	GetJuicyCharacterOwner()->OnStartWallHang(FloorHit, WallHit);
 	SetMovementMode(EJuicyCharacterMovementMode::WallHang);
+	GetJuicyCharacterOwner()->OnStartWallHang(FloorHit, WallHit);
+}
+
+void UJuicyCharacterMovementComponent::StartWallHangCooldown()
+{
+	if (WallHangCooldown <= 0.0f)
+	{
+		return;
+	}
+
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandleForWallHangCooldown, this,
+	                      &UJuicyCharacterMovementComponent::EndWallHangCooldown,
+	                      WallHangCooldown);
+	GetJuicyCharacterOwner()->OnStartWallHangCooldown();
+}
+
+void UJuicyCharacterMovementComponent::EndWallHangCooldown()
+{
+	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
+	TimerManager.ClearTimer(TimerHandleForWallHangCooldown);
+	GetJuicyCharacterOwner()->OnEndWallHangCooldown();
 }
 
 bool UJuicyCharacterMovementComponent::CheckFloorExists(FHitResult& FloorHit, const FHitResult& WallHit) const

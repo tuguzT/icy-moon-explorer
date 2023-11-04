@@ -85,6 +85,10 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float WallRunMaxGravityVelocity;
 
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	float WallRunCooldown;
+
 	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxWallHangSpeed;
@@ -99,6 +103,10 @@ public:
 	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0"))
 	float BrakingDecelerationWallHanging;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	float WallHangCooldown;
 
 	UPROPERTY(Category="Character Movement: Wall Run / Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm"))
@@ -168,9 +176,11 @@ public:
 	virtual void ExitMantling();
 
 	virtual bool IsWallRunning() const;
+	virtual bool IsWallRunningCooldown() const;
 	virtual bool CanWallRunInCurrentState() const;
 
 	virtual bool IsWallHanging() const;
+	virtual bool IsWallHangingCooldown() const;
 	virtual bool CanWallHangInCurrentState() const;
 
 	virtual bool IsOnWall() const;
@@ -209,6 +219,9 @@ private:
 	FTimerHandle TimerHandleForDashCooldown;
 	FVector CurrentDashDirection;
 
+	FTimerHandle TimerHandleForWallRunCooldown;
+	FTimerHandle TimerHandleForWallHangCooldown;
+
 	bool HasInput() const;
 	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
 
@@ -223,7 +236,12 @@ private:
 	void StartMantle();
 
 	void StartWallRun();
+	void StartWallRunCooldown();
+	void EndWallRunCooldown();
+
 	void StartWallHang();
+	void StartWallHangCooldown();
+	void EndWallHangCooldown();
 
 	bool CheckFloorExists(FHitResult& FloorHit, const FHitResult& WallHit) const;
 	bool CheckWallExists(FHitResult& WallHit, const FVector& Direction) const;
