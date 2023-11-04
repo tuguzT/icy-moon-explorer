@@ -100,9 +100,6 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanWallRun() const;
 
-	UFUNCTION(BlueprintPure, Category=Character)
-	virtual bool IsRunningOnRightWall() const;
-
 	virtual void OnStartWallRun(const FHitResult& FloorHit, const FHitResult& WallHit);
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartWallRun", ScriptName="OnStartWallRun"))
@@ -119,9 +116,6 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanWallHang() const;
 
-	UFUNCTION(BlueprintPure, Category=Character)
-	virtual bool IsHangingOnRightWall() const;
-
 	virtual void OnStartWallHang(const FHitResult& FloorHit, const FHitResult& WallHit);
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartWallHang", ScriptName="OnStartWallHang"))
@@ -131,6 +125,12 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndWallHang", ScriptName="OnEndWallHang"))
 	void K2_OnEndWallHang();
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsOnWall() const;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual FVector GetWallNormal() const;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	virtual bool CanJumpInternal_Implementation() const override;

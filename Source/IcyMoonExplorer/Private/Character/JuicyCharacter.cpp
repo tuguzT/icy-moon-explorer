@@ -157,12 +157,6 @@ bool AJuicyCharacter::CanWallRun() const
 		&& JuicyCharacterMovement->CanWallRunInCurrentState();
 }
 
-bool AJuicyCharacter::IsRunningOnRightWall() const
-{
-	return JuicyCharacterMovement
-		&& JuicyCharacterMovement->IsRunningOnRightWall();
-}
-
 void AJuicyCharacter::OnStartWallRun(const FHitResult& FloorHit, const FHitResult& WallHit)
 {
 	K2_OnStartWallRun(FloorHit, WallHit);
@@ -185,12 +179,6 @@ bool AJuicyCharacter::CanWallHang() const
 		&& JuicyCharacterMovement->CanWallHangInCurrentState();
 }
 
-bool AJuicyCharacter::IsHangingOnRightWall() const
-{
-	return JuicyCharacterMovement
-		&& JuicyCharacterMovement->IsHangingOnRightWall();
-}
-
 void AJuicyCharacter::OnStartWallHang(const FHitResult& FloorHit, const FHitResult& WallHit)
 {
 	K2_OnStartWallHang(FloorHit, WallHit);
@@ -199,6 +187,21 @@ void AJuicyCharacter::OnStartWallHang(const FHitResult& FloorHit, const FHitResu
 void AJuicyCharacter::OnEndWallHang()
 {
 	K2_OnEndWallHang();
+}
+
+bool AJuicyCharacter::IsOnWall() const
+{
+	return JuicyCharacterMovement
+		&& JuicyCharacterMovement->IsOnWall();
+}
+
+FVector AJuicyCharacter::GetWallNormal() const
+{
+	if (!JuicyCharacterMovement)
+	{
+		return FVector::ZeroVector;
+	}
+	return JuicyCharacterMovement->GetWallNormal();
 }
 
 void AJuicyCharacter::OnMovementModeChanged(const EMovementMode PrevMovementMode, const uint8 PreviousCustomMode)

@@ -93,10 +93,6 @@ public:
 	float WallHangGravityScale;
 
 	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0"))
-	uint8 WallHangCheckAroundCount;
-
-	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float WallHangMaxGravityVelocity;
 
@@ -141,7 +137,7 @@ public:
 	uint8 bIsMantling : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
-	uint8 bIsOnRightWall : 1;
+	FVector WallNormal;
 
 	explicit UJuicyCharacterMovementComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -173,11 +169,12 @@ public:
 
 	virtual bool IsWallRunning() const;
 	virtual bool CanWallRunInCurrentState() const;
-	virtual bool IsRunningOnRightWall() const;
 
 	virtual bool IsWallHanging() const;
 	virtual bool CanWallHangInCurrentState() const;
-	virtual bool IsHangingOnRightWall() const;
+
+	virtual bool IsOnWall() const;
+	virtual FVector GetWallNormal() const;
 
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual float GetGravityZ() const override;
@@ -229,7 +226,5 @@ private:
 	void StartWallHang();
 
 	bool CheckFloorExists(FHitResult& FloorHit, const FHitResult& WallHit) const;
-	bool CheckWallExists(FHitResult& WallHit) const;
-	bool CheckWallExists(FHitResult& WallHit, bool bCheckAtRight) const;
 	bool CheckWallExists(FHitResult& WallHit, const FVector& Direction) const;
 };

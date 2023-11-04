@@ -80,7 +80,6 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 
 	MaxWallHangSpeed = MaxWalkSpeed;
 	WallHangGravityScale = 0.0f;
-	WallHangCheckAroundCount = 4;
 	WallHangMaxGravityVelocity = 100.0f;
 	BrakingDecelerationWallHanging = BrakingDecelerationWalking;
 
@@ -90,8 +89,6 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	JumpOffWallVerticalVelocity = JumpZVelocity * 0.5f;
 	WallMinPullAwayAngle = 75.0f;
 	WallAttractionForce = JumpZVelocity * 0.5f;
-
-	bIsOnRightWall = false;
 }
 
 AJuicyCharacter* UJuicyCharacterMovementComponent::GetJuicyCharacterOwner() const
@@ -275,11 +272,6 @@ bool UJuicyCharacterMovementComponent::CanWallRunInCurrentState() const
 		&& !IsMantling();
 }
 
-bool UJuicyCharacterMovementComponent::IsRunningOnRightWall() const
-{
-	return IsWallRunning() && bIsOnRightWall;
-}
-
 bool UJuicyCharacterMovementComponent::IsWallHanging() const
 {
 	return IsMovementMode(EJuicyCharacterMovementMode::WallHang);
@@ -293,9 +285,18 @@ bool UJuicyCharacterMovementComponent::CanWallHangInCurrentState() const
 		&& !IsMantling();
 }
 
-bool UJuicyCharacterMovementComponent::IsHangingOnRightWall() const
+bool UJuicyCharacterMovementComponent::IsOnWall() const
 {
-	return IsWallHanging() && bIsOnRightWall;
+	return IsWallRunning() || IsWallHanging();
+}
+
+FVector UJuicyCharacterMovementComponent::GetWallNormal() const
+{
+	if (!IsOnWall())
+	{
+		return FVector::ZeroVector;
+	}
+	return WallNormal;
 }
 
 FNetworkPredictionData_Client* UJuicyCharacterMovementComponent::GetPredictionData_Client() const
@@ -338,25 +339,15 @@ bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 
 bool UJuicyCharacterMovementComponent::DoJump(const bool bReplayingMoves)
 {
-	const bool bWasWallRunning = IsWallRunning();
-	const bool bWasWallHanging = IsWallHanging();
+	const bool bWasOnWall = IsOnWall();
 	if (!Super::DoJump(bReplayingMoves))
 	{
 		return false;
 	}
 
-	if (bWasWallRunning || bWasWallHanging)
+	if (bWasOnWall)
 	{
-		FHitResult WallHit;
-		if (bWasWallRunning)
-		{
-			CheckWallExists(WallHit, bIsOnRightWall);
-		}
-		else
-		{
-			CheckWallExists(WallHit);
-		}
-		Velocity += WallHit.Normal * JumpOffWallVerticalVelocity;
+		Velocity += WallNormal * JumpOffWallVerticalVelocity;
 	}
 	return true;
 }
@@ -790,12 +781,23 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 
 		// Check if wall exists
 		FHitResult WallHit;
-		CheckWallExists(WallHit, bIsOnRightWall);
+		CheckWallExists(WallHit, -WallNormal);
 		const float SinMinPullAwayAngle = FMath::Sin(FMath::DegreesToRadians(WallMinPullAwayAngle));
 		// ReSharper disable once CppTooWideScopeInitStatement
 		const bool bWantsToPullAway = WallHit.IsValidBlockingHit()
 			&& (Acceleration.IsNearlyZero() || (Acceleration.GetSafeNormal() | WallHit.Normal) > SinMinPullAwayAngle);
 		if (!WallHit.IsValidBlockingHit() || bWantsToPullAway)
+		{
+			SetMovementMode(MOVE_Falling);
+			StartNewPhysics(RemainingTime, Iterations);
+			return;
+		}
+		WallNormal = WallHit.Normal;
+
+		// Check floor
+		FHitResult FloorHit;
+		CheckFloorExists(FloorHit, WallHit);
+		if (FloorHit.IsValidBlockingHit())
 		{
 			SetMovementMode(MOVE_Falling);
 			StartNewPhysics(RemainingTime, Iterations);
@@ -834,6 +836,7 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 			SafeMoveUpdatedComponent(Delta, UpdatedComponent->GetComponentQuat(), true, Hit);
 			const FVector WallAttractionDelta = -WallHit.Normal * WallAttractionForce * TimeTick;
 			SafeMoveUpdatedComponent(WallAttractionDelta, UpdatedComponent->GetComponentQuat(), true, Hit);
+			ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
 		}
 
 		// Make velocity reflect actual move
@@ -845,16 +848,6 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 			RemainingTime = 0.0f;
 			break;
 		}
-	}
-
-	// Check invariants of wall run mode
-	FHitResult FloorHit, WallHit;
-	CheckWallExists(WallHit, bIsOnRightWall);
-	CheckFloorExists(FloorHit, WallHit);
-	if (!WallHit.IsValidBlockingHit() || FloorHit.IsValidBlockingHit()
-		|| Velocity.SizeSquared2D() < pow(WallRunMinHorizontalSpeed, 2))
-	{
-		SetMovementMode(MOVE_Falling);
 	}
 }
 
@@ -892,12 +885,23 @@ void UJuicyCharacterMovementComponent::PhysWallHang(const float DeltaTime, int32
 		// Check if wall exists
 		// ReSharper disable once CppTooWideScopeInitStatement
 		FHitResult WallHit;
-		CheckWallExists(WallHit);
+		CheckWallExists(WallHit, -WallNormal);
 		const float SinMinPullAwayAngle = FMath::Sin(FMath::DegreesToRadians(WallMinPullAwayAngle));
 		// ReSharper disable once CppTooWideScopeInitStatement
 		const bool bWantsToPullAway = WallHit.IsValidBlockingHit()
 			&& (Acceleration.IsNearlyZero() || (Acceleration.GetSafeNormal() | WallHit.Normal) > SinMinPullAwayAngle);
 		if (!WallHit.IsValidBlockingHit() || bWantsToPullAway)
+		{
+			SetMovementMode(MOVE_Falling);
+			StartNewPhysics(RemainingTime, Iterations);
+			return;
+		}
+		WallNormal = WallHit.Normal;
+
+		// Check floor
+		FHitResult FloorHit;
+		CheckFloorExists(FloorHit, WallHit);
+		if (FloorHit.IsValidBlockingHit())
 		{
 			SetMovementMode(MOVE_Falling);
 			StartNewPhysics(RemainingTime, Iterations);
@@ -940,15 +944,6 @@ void UJuicyCharacterMovementComponent::PhysWallHang(const float DeltaTime, int32
 			RemainingTime = 0.0f;
 			break;
 		}
-	}
-
-	// Check invariants of wall hang mode
-	FHitResult FloorHit, WallHit;
-	CheckWallExists(WallHit);
-	CheckFloorExists(FloorHit, WallHit);
-	if (!WallHit.IsValidBlockingHit() || FloorHit.IsValidBlockingHit())
-	{
-		SetMovementMode(MOVE_Falling);
 	}
 }
 
@@ -1292,10 +1287,10 @@ void UJuicyCharacterMovementComponent::StartWallRun()
 		return;
 	}
 
-	FHitResult CheckDirectionHit;
-	bIsOnRightWall = CheckWallExists(CheckDirectionHit, true);
+	WallNormal = WallHit.Normal;
 	Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
 	Velocity.Z = FMath::Clamp(Velocity.Z, 0.0f, WallRunMaxVerticalSpeed);
+	ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
 	GetJuicyCharacterOwner()->OnStartWallRun(FloorHit, WallHit);
 	SetMovementMode(EJuicyCharacterMovementMode::WallRun);
 }
@@ -1308,8 +1303,7 @@ void UJuicyCharacterMovementComponent::StartWallHang()
 		return;
 	}
 
-	FHitResult CheckDirectionHit;
-	bIsOnRightWall = CheckWallExists(CheckDirectionHit, true);
+	WallNormal = WallHit.Normal;
 	Velocity = FVector::ZeroVector;
 	GetJuicyCharacterOwner()->OnStartWallHang(FloorHit, WallHit);
 	SetMovementMode(EJuicyCharacterMovementMode::WallHang);
@@ -1327,28 +1321,6 @@ bool UJuicyCharacterMovementComponent::CheckFloorExists(FHitResult& FloorHit, co
 	const auto Params = Detail::CollisionQueryParamsWithoutActor(CharacterOwner);
 
 	return GetWorld()->LineTraceSingleByProfile(FloorHit, Start, End, ProfileName, Params);
-}
-
-bool UJuicyCharacterMovementComponent::CheckWallExists(FHitResult& WallHit, const bool bCheckAtRight) const
-{
-	const FVector Right = UpdatedComponent->GetRightVector();
-	return CheckWallExists(WallHit, bCheckAtRight ? Right : -Right);
-}
-
-bool UJuicyCharacterMovementComponent::CheckWallExists(FHitResult& WallHit) const
-{
-	FVector Direction = UpdatedComponent->GetForwardVector();
-	for (uint8 Index = 0; Index < WallHangCheckAroundCount; ++Index)
-	{
-		const float Angle = 360.0f / WallHangCheckAroundCount * Index;
-		const FVector Up = UpdatedComponent->GetUpVector();
-		Direction = Direction.RotateAngleAxis(Angle, Up);
-		if (CheckWallExists(WallHit, Direction))
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 bool UJuicyCharacterMovementComponent::CheckWallExists(FHitResult& WallHit, const FVector& Direction) const

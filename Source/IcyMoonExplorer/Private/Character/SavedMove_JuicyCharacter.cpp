@@ -9,7 +9,8 @@ FSavedMove_JuicyCharacter::FSavedMove_JuicyCharacter()
 	bWantsToDash = false;
 	bWantsToMantle = false;
 	bIsMantling = false;
-	bIsOnRightWall = false;
+
+	WallDotThresholdCombine = 0.996f;
 }
 
 FSavedMove_JuicyCharacter::~FSavedMove_JuicyCharacter()
@@ -25,14 +26,14 @@ bool FSavedMove_JuicyCharacter::CanCombineWith(const FSavedMovePtr& NewMove, ACh
 	const bool bCombineDash = NewJuicyMove->bWantsToDash == bWantsToDash;
 	const bool bCombineMantle = NewJuicyMove->bWantsToMantle == bWantsToMantle;
 	const bool bCombineMantling = NewJuicyMove->bIsMantling == bIsMantling;
-	const bool bCombineOnRightWall = NewJuicyMove->bIsOnRightWall == bIsOnRightWall;
+	const bool bCombineWallNormal = FVector::Coincident(NewJuicyMove->WallNormal, WallNormal);
 
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta)
 		&& bCombineSlide
 		&& bCombineDash
 		&& bCombineMantle
 		&& bCombineMantling
-		&& bCombineOnRightWall;
+		&& bCombineWallNormal;
 }
 
 void FSavedMove_JuicyCharacter::Clear()
@@ -43,7 +44,8 @@ void FSavedMove_JuicyCharacter::Clear()
 	bWantsToDash = false;
 	bWantsToMantle = false;
 	bIsMantling = false;
-	bIsOnRightWall = false;
+
+	WallNormal = FVector::ZeroVector;
 }
 
 uint8 FSavedMove_JuicyCharacter::GetCompressedFlags() const
@@ -61,7 +63,7 @@ void FSavedMove_JuicyCharacter::SetMoveFor(ACharacter* C, const float InDeltaTim
 	bWantsToDash = CharacterMovement->bWantsToDash;
 	bWantsToMantle = CharacterMovement->bWantsToMantle;
 	bIsMantling = CharacterMovement->bIsMantling;
-	bIsOnRightWall = CharacterMovement->bIsOnRightWall;
+	WallNormal = CharacterMovement->WallNormal;
 }
 
 void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
@@ -73,5 +75,5 @@ void FSavedMove_JuicyCharacter::PrepMoveFor(ACharacter* C)
 	CharacterMovement->bWantsToDash = bWantsToDash;
 	CharacterMovement->bWantsToMantle = bWantsToMantle;
 	CharacterMovement->bIsMantling = bIsMantling;
-	CharacterMovement->bIsOnRightWall = bIsOnRightWall;
+	CharacterMovement->WallNormal = WallNormal;
 }
