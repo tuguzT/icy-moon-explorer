@@ -115,11 +115,8 @@ void UJuicyCharacterMovementComponent::SetMovementMode(const EJuicyCharacterMove
 bool UJuicyCharacterMovementComponent::IsMovementMode(const EMovementMode IsMovementMode,
                                                       const uint8 IsCustomMode) const
 {
-	if (MovementMode != IsMovementMode)
-	{
-		return false;
-	}
-	return MovementMode != MOVE_Custom || CustomMovementMode == IsCustomMode;
+	return MovementMode == IsMovementMode
+		&& (MovementMode != MOVE_Custom || CustomMovementMode == IsCustomMode);
 }
 
 bool UJuicyCharacterMovementComponent::IsMovementMode(const EJuicyCharacterMovementMode IsMovementMode,
@@ -153,10 +150,11 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
-	// const bool HasMinSpeed = Velocity.SquaredLength() >= FMath::Sqrt(MinSlideSpeed);
 	return HasInput()
 		&& IsMovingOnGround()
-		&& !IsMantling();
+		&& !IsMantling()
+		&& !IsWallRunning()
+		&& !IsWallHanging();
 }
 
 void UJuicyCharacterMovementComponent::Dash()
@@ -271,7 +269,10 @@ bool UJuicyCharacterMovementComponent::IsWallRunning() const
 
 bool UJuicyCharacterMovementComponent::CanWallRunInCurrentState() const
 {
-	return HasInput() && IsFalling();
+	return HasInput()
+		&& IsFalling()
+		&& !IsDashing()
+		&& !IsMantling();
 }
 
 bool UJuicyCharacterMovementComponent::IsRunningOnRightWall() const
@@ -286,7 +287,10 @@ bool UJuicyCharacterMovementComponent::IsWallHanging() const
 
 bool UJuicyCharacterMovementComponent::CanWallHangInCurrentState() const
 {
-	return HasInput() && IsFalling();
+	return HasInput()
+		&& IsFalling()
+		&& !IsDashing()
+		&& !IsMantling();
 }
 
 bool UJuicyCharacterMovementComponent::IsHangingOnRightWall() const
