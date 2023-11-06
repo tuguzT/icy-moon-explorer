@@ -7,7 +7,7 @@ public class IcyMoonExplorer : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[]
-			{ "Core", "CoreUObject", "Engine", "InputCore", "EasyBallistics", "AGRPRO" });
+			{ "Core", "CoreUObject", "Engine", "InputCore", "EasyBallistics", "AGRPRO", "ActorInteractionPlugin" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
@@ -17,6 +17,7 @@ public class IcyMoonExplorer : ModuleRules
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+		// To include OnlineSubsystemSteam, add it to the plugins section
+		// in your uproject file with the Enabled attribute set to true
 	}
 }
