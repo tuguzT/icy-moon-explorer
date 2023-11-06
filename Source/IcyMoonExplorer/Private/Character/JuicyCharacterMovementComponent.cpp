@@ -987,9 +987,6 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 	const float MaxReachHeight = HalfHeight * 2.0f + MantleReachHeight;
 	const FVector FrontDirection = UpdatedComponent->GetForwardVector();
 	const FVector FeetLocation = UpdatedComponent->GetComponentLocation() + FVector::DownVector * HalfHeight;
-	const float CosMinSteepnessAngle = FMath::Cos(FMath::DegreesToRadians(MantleMinSteepnessAngle));
-	const float CosMaxSurfaceAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxSurfaceAngle));
-	const float CosMaxAlignmentAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxAlignmentAngle));
 	const auto ProfileName = TEXT("BlockAll");
 	const auto Params = Detail::CollisionQueryParamsWithoutActor(CharacterOwner);
 
@@ -1013,6 +1010,8 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 	{
 		return false;
 	}
+	const float CosMinSteepnessAngle = FMath::Cos(FMath::DegreesToRadians(MantleMinSteepnessAngle));
+	const float CosMaxAlignmentAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxAlignmentAngle));
 	const float CosWallSteepnessAngle = FrontHit.Normal | FVector::UpVector;
 	// ReSharper disable once CppTooWideScopeInitStatement
 	const float CosWallAlignmentAngle = FrontDirection | -FrontHit.Normal;
@@ -1044,11 +1043,14 @@ bool UJuicyCharacterMovementComponent::TryMantle(FHitResult& FrontHit, FHitResul
 			break;
 		}
 	}
-	if (!SurfaceHit.IsValidBlockingHit()
-		|| (SurfaceHit.Normal | FVector::UpVector) < CosMaxSurfaceAngle)
+	const float CosMaxSurfaceAngle = FMath::Cos(FMath::DegreesToRadians(MantleMaxSurfaceAngle));
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const float CosWallSurfaceAngle = SurfaceHit.Normal | FVector::UpVector;
+	if (!SurfaceHit.IsValidBlockingHit() || CosWallSurfaceAngle < CosMaxSurfaceAngle)
 	{
 		return false;
 	}
+
 	// ReSharper disable once CppTooWideScopeInitStatement
 	const float Height = (SurfaceHit.Location - FeetLocation) | FVector::UpVector;
 	if (Height > MaxReachHeight)
@@ -1099,6 +1101,12 @@ bool UJuicyCharacterMovementComponent::TryWallRun(FHitResult& FloorHit, FHitResu
 	{
 		return false;
 	}
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const FVector Forward = UpdatedComponent->GetForwardVector();
+	if ((Forward | Acceleration) < 0)
+	{
+		return false;
+	}
 
 	const float CosMinSteepnessAngle = FMath::Cos(FMath::RadiansToDegrees(WallMinSteepnessAngle));
 	// ReSharper disable once CppTooWideScopeInitStatement
@@ -1136,9 +1144,7 @@ bool UJuicyCharacterMovementComponent::TryWallHang(FHitResult& FloorHit, FHitRes
 	// ReSharper disable once CppTooWideScopeInitStatement
 	const bool bWallWasHit = CheckWallExists(WallHit, Acceleration.GetSafeNormal2D())
 		&& WallHit.IsValidBlockingHit()
-		// TODO allow to hang with velocity not pointing on wall
-		// just commenting condition below breaks wall run jump (wall hang fires too, but shouldn't)
-		&& (Velocity | WallHit.Normal) < 0
+		&& (Velocity | WallHit.Normal) <= 0
 		&& (Acceleration | WallHit.Normal) < 0;
 	if (!bWallWasHit)
 	{
@@ -1355,7 +1361,7 @@ void UJuicyCharacterMovementComponent::StartWallHang()
 	}
 
 	WallNormal = WallHit.Normal;
-	Velocity = FVector::ZeroVector;
+	Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
 	SetMovementMode(EJuicyCharacterMovementMode::WallHang);
 	GetJuicyCharacterOwner()->OnStartWallHang(FloorHit, WallHit);
 }
