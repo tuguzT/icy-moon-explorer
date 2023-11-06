@@ -154,9 +154,9 @@ public:
 	AJuicyCharacter* GetJuicyCharacterOwner() const;
 
 	virtual void SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode = 0) override;
-	virtual void SetMovementMode(EJuicyCharacterMovementMode NewMovementMode, uint8 NewCustomMode = 0);
+	virtual void SetMovementMode(EJuicyCharacterMovementMode NewMovementMode);
 	virtual bool IsMovementMode(EMovementMode IsMovementMode, uint8 IsCustomMode = 0) const;
-	virtual bool IsMovementMode(EJuicyCharacterMovementMode IsMovementMode, uint8 IsCustomMode = 0) const;
+	virtual bool IsMovementMode(EJuicyCharacterMovementMode IsMovementMode) const;
 
 	virtual void Slide();
 	virtual void UnSlide();
@@ -213,6 +213,7 @@ protected:
 	                               const FVector& OldVelocity) override;
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode,
 	                                   uint8 PreviousCustomMode) override;
+	virtual void SetPostLandedPhysics(const FHitResult& Hit) override;
 
 private:
 	FTimerHandle TimerHandleForDashDuration;

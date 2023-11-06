@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Components/AGRAnimMasterComponent.h"
 #include "GameFramework/Character.h"
 #include "JuicyCharacter.generated.h"
 
@@ -15,11 +16,16 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
 	float CoyoteTime;
 
+	static FName AnimMasterComponentName;
+
 	explicit AJuicyCharacter(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	UJuicyCharacterMovementComponent* GetJuicyCharacterMovement() const;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	UAGRAnimMasterComponent* GetAnimMaster() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void Slide();
@@ -191,6 +197,9 @@ public:
 	virtual void Landed(const FHitResult& Hit) override;
 
 private:
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<UAGRAnimMasterComponent> AnimMaster;
+
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UJuicyCharacterMovementComponent> JuicyCharacterMovement;
 

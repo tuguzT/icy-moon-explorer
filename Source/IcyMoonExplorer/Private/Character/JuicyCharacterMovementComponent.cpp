@@ -4,32 +4,11 @@
 #include "Character/NetworkPredictionData_Client_JuicyCharacter.h"
 #include "Character/JuicyCharacter.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogJuicyCharacterMovement, Log, All);
-
 namespace Detail
 {
-	constexpr auto NoneMode = static_cast<uint8>(EJuicyCharacterMovementMode::None);
 	constexpr auto SlideMode = static_cast<uint8>(EJuicyCharacterMovementMode::Slide);
 	constexpr auto WallRunMode = static_cast<uint8>(EJuicyCharacterMovementMode::WallRun);
 	constexpr auto WallHangMode = static_cast<uint8>(EJuicyCharacterMovementMode::WallHang);
-	constexpr auto CustomMode = static_cast<uint8>(EJuicyCharacterMovementMode::Custom);
-
-	constexpr uint8 PrefixForMovementMode(const EJuicyCharacterMovementMode MovementMode)
-	{
-		if (MovementMode != EJuicyCharacterMovementMode::Custom)
-		{
-			return 0;
-		}
-		return CustomMode;
-	}
-
-	constexpr uint8 NewCustomModeWithPrefix(const EJuicyCharacterMovementMode MovementMode,
-	                                        const uint8 NewCustomMode)
-	{
-		const uint8 Prefix = PrefixForMovementMode(MovementMode);
-		const auto MovementModeRaw = static_cast<uint8>(MovementMode);
-		return MovementModeRaw + Prefix + NewCustomMode;
-	}
 
 	FCollisionQueryParams CollisionQueryParamsWithoutActor(const AActor* Actor)
 	{
@@ -50,6 +29,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	constexpr float DefaultCapsuleRadius = 34.0f;
 
 	NavAgentProps.bCanCrouch = true;
+	bCanWalkOffLedgesWhenCrouching = true;
 
 	MaxSlideSpeed = MaxWalkSpeed * 2.0f;
 	SlideFriction = GroundFriction;
@@ -104,10 +84,9 @@ void UJuicyCharacterMovementComponent::SetMovementMode(const EMovementMode NewMo
 	Super::SetMovementMode(NewMovementMode, NewCustomMode);
 }
 
-void UJuicyCharacterMovementComponent::SetMovementMode(const EJuicyCharacterMovementMode NewMovementMode,
-                                                       const uint8 NewCustomMode)
+void UJuicyCharacterMovementComponent::SetMovementMode(const EJuicyCharacterMovementMode NewMovementMode)
 {
-	const uint8 CustomMode = Detail::NewCustomModeWithPrefix(NewMovementMode, NewCustomMode);
+	const auto CustomMode = static_cast<uint8>(NewMovementMode);
 	Super::SetMovementMode(MOVE_Custom, CustomMode);
 }
 
@@ -118,10 +97,9 @@ bool UJuicyCharacterMovementComponent::IsMovementMode(const EMovementMode IsMove
 		&& (MovementMode != MOVE_Custom || CustomMovementMode == IsCustomMode);
 }
 
-bool UJuicyCharacterMovementComponent::IsMovementMode(const EJuicyCharacterMovementMode IsMovementMode,
-                                                      const uint8 IsCustomMode) const
+bool UJuicyCharacterMovementComponent::IsMovementMode(const EJuicyCharacterMovementMode IsMovementMode) const
 {
-	const uint8 CustomMode = Detail::NewCustomModeWithPrefix(IsMovementMode, IsCustomMode);
+	const auto CustomMode = static_cast<uint8>(IsMovementMode);
 	return MovementMode == MOVE_Custom && CustomMovementMode == CustomMode;
 }
 
@@ -355,12 +333,10 @@ float UJuicyCharacterMovementComponent::GetGravityZ() const
 
 bool UJuicyCharacterMovementComponent::CanAttemptJump() const
 {
-	return Super::CanAttemptJump()
-		&& !IsSliding()
+	return IsJumpAllowed()
 		&& !IsDashing()
 		&& !IsMantling()
-		|| IsWallRunning()
-		|| IsWallHanging();
+		&& (IsMovingOnGround() || IsFalling() || IsWallRunning() || IsWallHanging());
 }
 
 bool UJuicyCharacterMovementComponent::DoJump(const bool bReplayingMoves)
@@ -446,10 +422,8 @@ float UJuicyCharacterMovementComponent::GetMaxSpeed() const
 		return MaxWallRunSpeed;
 	case Detail::WallHangMode:
 		return MaxWallHangSpeed;
-	case Detail::CustomMode:
-		return MaxCustomMovementSpeed;
 	default:
-		return 0.0f;
+		return MaxCustomMovementSpeed;
 	}
 }
 
@@ -523,8 +497,6 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 
 	switch (CustomMovementMode)
 	{
-	case Detail::NoneMode:
-		break;
 	case Detail::SlideMode:
 		PhysSlide(DeltaTime, Iterations);
 		break;
@@ -534,14 +506,9 @@ void UJuicyCharacterMovementComponent::PhysCustom(const float DeltaTime, const i
 	case Detail::WallHangMode:
 		PhysWallHang(DeltaTime, Iterations);
 		break;
-	case Detail::CustomMode:
+	default:
 		// user can fall back to custom implementation
 		break;
-	default:
-		UE_LOG(LogJuicyCharacterMovement, Warning, TEXT("%s has unsupported movement mode %d"),
-		       *GetJuicyCharacterOwner()->GetName(),
-		       static_cast<int32>(CustomMovementMode))
-		Super::SetMovementMode(MOVE_None);
 	}
 }
 
@@ -587,11 +554,11 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 		const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 		const FFindFloorResult OldFloor = CurrentFloor;
 
+		RestorePreAdditiveRootMotionVelocity();
+
 		// Ensure velocity is horizontal.
 		MaintainHorizontalGroundVelocity();
 		const FVector OldVelocity = Velocity;
-
-		// Project acceleration onto gravity direction plane
 		Acceleration = FVector::VectorPlaneProject(Acceleration, -GetGravityDirection());
 
 		// Apply acceleration
@@ -752,7 +719,7 @@ void UJuicyCharacterMovementComponent::PhysSlide(const float DeltaTime, int32 It
 				&& TimeTick >= MIN_TICK_TIME)
 			{
 				Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / TimeTick;
-				if (Velocity.IsZero())
+				if (FVector2D(Velocity).IsZero())
 				{
 					Velocity = Acceleration.GetSafeNormal2D() * MaxSlideSpeed;
 				}
@@ -1188,7 +1155,6 @@ void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode
 	const auto JuicyCharacterOwner = GetJuicyCharacterOwner();
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::SlideMode)
 	{
-		UnSlide();
 		JuicyCharacterOwner->OnEndSlide();
 	}
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::WallRunMode)
@@ -1204,9 +1170,42 @@ void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode
 
 	if (IsSliding())
 	{
-		Slide();
 		JuicyCharacterOwner->OnStartSlide();
 		bCrouchMaintainsBaseLocation = true;
+	}
+}
+
+void UJuicyCharacterMovementComponent::SetPostLandedPhysics(const FHitResult& Hit)
+{
+	if (CharacterOwner)
+	{
+		if (CanEverSwim() && IsInWater())
+		{
+			SetMovementMode(MOVE_Swimming);
+		}
+		else
+		{
+			const FVector PreImpactAccel = Acceleration
+				+ (IsFalling() ? -GetGravityDirection() * GetGravityZ() : FVector::ZeroVector);
+			const FVector PreImpactVelocity = Velocity;
+
+			if (bWantsToSlide)
+			{
+				StartSlide();
+			}
+			else if (DefaultLandMovementMode == MOVE_Walking ||
+				DefaultLandMovementMode == MOVE_NavWalking ||
+				DefaultLandMovementMode == MOVE_Falling)
+			{
+				SetMovementMode(GetGroundMovementMode());
+			}
+			else
+			{
+				SetDefaultMovementMode();
+			}
+
+			ApplyImpactPhysicsForces(Hit, PreImpactAccel, PreImpactVelocity);
+		}
 	}
 }
 

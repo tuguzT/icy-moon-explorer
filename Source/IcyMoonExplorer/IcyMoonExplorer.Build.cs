@@ -6,7 +6,8 @@ public class IcyMoonExplorer : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[]
+			{ "Core", "CoreUObject", "Engine", "InputCore", "EasyBallistics", "AGRPRO" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 

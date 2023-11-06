@@ -11,17 +11,25 @@ namespace Detail
 	}
 }
 
+FName AJuicyCharacter::AnimMasterComponentName = TEXT("AnimMasterComp");
+
 AJuicyCharacter::AJuicyCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(Detail::ReplaceCharacterMovement(ObjectInitializer))
 {
-	CoyoteTime = 0.0f;
-
+	AnimMaster = CreateDefaultSubobject<UAGRAnimMasterComponent>(AnimMasterComponentName);
 	JuicyCharacterMovement = Cast<UJuicyCharacterMovementComponent>(GetCharacterMovement());
+
+	CoyoteTime = 0.0f;
 }
 
 UJuicyCharacterMovementComponent* AJuicyCharacter::GetJuicyCharacterMovement() const
 {
 	return JuicyCharacterMovement;
+}
+
+UAGRAnimMasterComponent* AJuicyCharacter::GetAnimMaster() const
+{
+	return AnimMaster;
 }
 
 void AJuicyCharacter::Slide()
@@ -273,7 +281,7 @@ void AJuicyCharacter::OnMovementModeChanged(const EMovementMode PrevMovementMode
 
 bool AJuicyCharacter::CanJumpInternal_Implementation() const
 {
-	return Super::CanJumpInternal_Implementation() || IsCoyoteTime();
+	return JumpIsAllowedInternal() || IsCoyoteTime();
 }
 
 void AJuicyCharacter::Landed(const FHitResult& Hit)
