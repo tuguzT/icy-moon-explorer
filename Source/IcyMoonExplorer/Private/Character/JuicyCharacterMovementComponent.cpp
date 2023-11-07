@@ -31,6 +31,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	NavAgentProps.bCanCrouch = true;
 	bCanWalkOffLedgesWhenCrouching = true;
 
+	SlideMinHorizontalSpeed = MaxWalkSpeed * 0.5f;
 	MaxSlideSpeed = MaxWalkSpeed * 2.0f;
 	SlideFriction = GroundFriction;
 	BrakingDecelerationSliding = BrakingDecelerationWalking;
@@ -111,13 +112,11 @@ void UJuicyCharacterMovementComponent::Slide()
 	}
 
 	bWantsToSlide = true;
-	bWantsToCrouch = true;
 }
 
 void UJuicyCharacterMovementComponent::UnSlide()
 {
 	bWantsToSlide = false;
-	bWantsToCrouch = false;
 }
 
 bool UJuicyCharacterMovementComponent::IsSliding() const
@@ -127,7 +126,9 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
+	const bool bEnoughVelocity = FVector2D(Velocity).SquaredLength() >= FMath::Pow(SlideMinHorizontalSpeed, 2);
 	return HasInput()
+		&& bEnoughVelocity
 		&& IsMovingOnGround()
 		&& !IsMantling()
 		&& !IsWallRunning()
@@ -1155,6 +1156,7 @@ void UJuicyCharacterMovementComponent::OnMovementModeChanged(const EMovementMode
 	const auto JuicyCharacterOwner = GetJuicyCharacterOwner();
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::SlideMode)
 	{
+		bWantsToCrouch = false;
 		JuicyCharacterOwner->OnEndSlide();
 	}
 	if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == Detail::WallRunMode)
@@ -1223,6 +1225,7 @@ void UJuicyCharacterMovementComponent::ResetCharacterRotation(const FVector& For
 
 void UJuicyCharacterMovementComponent::StartSlide()
 {
+	bWantsToCrouch = true;
 	SetMovementMode(EJuicyCharacterMovementMode::Slide);
 }
 
@@ -1231,6 +1234,7 @@ void UJuicyCharacterMovementComponent::EndSlide()
 	const FVector Forward = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
 	ResetCharacterRotation(Forward, true);
 
+	bWantsToCrouch = false;
 	Super::SetMovementMode(MOVE_Walking);
 }
 

@@ -14,6 +14,10 @@ class ICYMOONEXPLORER_API UJuicyCharacterMovementComponent : public UCharacterMo
 public:
 	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float SlideMinHorizontalSpeed;
+
+	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite,
+		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxSlideSpeed;
 
 	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite,
