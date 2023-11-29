@@ -378,12 +378,6 @@ void UJuicyCharacterMovementComponent::UpdateCharacterStateBeforeMovement(const 
 	{
 		StartMantle();
 	}
-	else if (IsMantling())
-	{
-		Acceleration = FVector::ZeroVector;
-		Velocity = FVector::ZeroVector;
-		Super::SetMovementMode(MOVE_Flying);
-	}
 
 	// Wall running
 	if (CanWallRunInCurrentState())
@@ -830,7 +824,6 @@ void UJuicyCharacterMovementComponent::PhysWallRun(const float DeltaTime, int32 
 			SafeMoveUpdatedComponent(Delta, UpdatedComponent->GetComponentQuat(), true, Hit);
 			const FVector WallAttractionDelta = -WallHit.Normal * WallAttractionForce * TimeTick;
 			SafeMoveUpdatedComponent(WallAttractionDelta, UpdatedComponent->GetComponentQuat(), true, Hit);
-			ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
 		}
 
 		// Make velocity reflect actual move
@@ -1216,13 +1209,6 @@ bool UJuicyCharacterMovementComponent::HasInput() const
 	return !Acceleration.GetSafeNormal2D().IsNearlyZero();
 }
 
-void UJuicyCharacterMovementComponent::ResetCharacterRotation(const FVector& Forward, const bool bSweep)
-{
-	FHitResult OutHit;
-	const FQuat RestoredRotation = FRotationMatrix::MakeFromXZ(Forward, FVector::UpVector).ToQuat();
-	SafeMoveUpdatedComponent(FVector::ZeroVector, RestoredRotation, bSweep, OutHit);
-}
-
 void UJuicyCharacterMovementComponent::StartSlide()
 {
 	bWantsToCrouch = true;
@@ -1231,9 +1217,6 @@ void UJuicyCharacterMovementComponent::StartSlide()
 
 void UJuicyCharacterMovementComponent::EndSlide()
 {
-	const FVector Forward = UpdatedComponent->GetForwardVector().GetSafeNormal2D();
-	ResetCharacterRotation(Forward, true);
-
 	bWantsToCrouch = false;
 	Super::SetMovementMode(MOVE_Walking);
 }
@@ -1248,7 +1231,6 @@ void UJuicyCharacterMovementComponent::StartDash()
 	CurrentDashDirection = HasInput()
 		                       ? Acceleration.GetSafeNormal2D()
 		                       : GetController()->GetControlRotation().Vector().GetSafeNormal2D();
-	ResetCharacterRotation(CurrentDashDirection, false);
 	Super::SetMovementMode(MOVE_Falling);
 	if (DashGravityScale == 0.0f)
 	{
@@ -1329,7 +1311,6 @@ void UJuicyCharacterMovementComponent::StartWallRun()
 	WallNormal = WallHit.Normal;
 	Velocity = FVector::VectorPlaneProject(Velocity, WallHit.Normal);
 	Velocity.Z = FMath::Clamp(Velocity.Z, 0.0f, WallRunMaxVerticalSpeed);
-	ResetCharacterRotation(Velocity.GetSafeNormal2D(), false);
 	SetMovementMode(EJuicyCharacterMovementMode::WallRun);
 	GetJuicyCharacterOwner()->OnStartWallRun(FloorHit, WallHit);
 }

@@ -228,7 +228,6 @@ private:
 	FTimerHandle TimerHandleForWallHangCooldown;
 
 	bool HasInput() const;
-	void ResetCharacterRotation(const FVector& Forward, bool bSweep);
 
 	void StartSlide();
 	void EndSlide();
