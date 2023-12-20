@@ -163,7 +163,9 @@ private:
 	void OnTakeRadialDamageDelegatedFromOwner(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	                                          FVector Origin, const FHitResult& HitInfo, AController* InstigatedBy,
 	                                          AActor* DamageCauser);
-	bool CanTakeDamageDelegatedFromOwner(AActor* DamagedActor, AActor* DamageCauser) const;
+	bool CanTakeDamageDelegatedFromOwner(const AActor* DamagedActor,
+	                                     const AController* InstigatedBy,
+	                                     const AActor* DamageCauser) const;
 
 	void SetHealthRaw(float NewHealth);
 	void ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake,

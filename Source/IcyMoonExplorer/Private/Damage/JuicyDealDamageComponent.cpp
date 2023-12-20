@@ -6,6 +6,7 @@ UJuicyDealDamageComponent::UJuicyDealDamageComponent(const FObjectInitializer& O
 	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
+	bCanDealDamageToSelf = true;
 }
 
 AActor* UJuicyDealDamageComponent::GetDamageDealer() const
@@ -22,6 +23,11 @@ AController* UJuicyDealDamageComponent::GetDamageInstigator() const
 void UJuicyDealDamageComponent::DealDamage(const FJuicyDealDamage& DamageToDeal,
                                            AActor* const DamagedActor) const
 {
+	if (!CanDealDamageTo(DamagedActor))
+	{
+		return;
+	}
+
 	UGameplayStatics::ApplyDamage(DamagedActor, DamageToDeal.Damage, GetDamageInstigator(),
 	                              GetDamageDealer(), DamageToDeal.DamageTypeClass);
 }
@@ -31,6 +37,11 @@ void UJuicyDealDamageComponent::DealPointDamage(const FJuicyDealDamage& DamageTo
                                                 const FVector& HitFromDirection,
                                                 const FHitResult& HitInfo) const
 {
+	if (!CanDealDamageTo(DamagedActor))
+	{
+		return;
+	}
+
 	UGameplayStatics::ApplyPointDamage(DamagedActor, DamageToDeal.Damage, HitFromDirection, HitInfo,
 	                                   GetDamageInstigator(), GetDamageDealer(), DamageToDeal.DamageTypeClass);
 }
@@ -41,8 +52,18 @@ bool UJuicyDealDamageComponent::DealRadialDamage(const FJuicyDealDamage& DamageT
                                                  const bool bDoFullDamage,
                                                  const ECollisionChannel DamagePreventionChannel) const
 {
+	TArray<AActor*> IgnoreActorsWithSelf{};
+	AActor* const DamageDealer = GetDamageDealer();
+
+	if (!bCanDealDamageToSelf && DamageDealer)
+	{
+		IgnoreActorsWithSelf = IgnoreActors;
+		IgnoreActorsWithSelf.Add(DamageDealer);
+	}
+
+	const auto& ActorsToIgnore = IgnoreActorsWithSelf.IsEmpty() ? IgnoreActors : IgnoreActorsWithSelf;
 	return UGameplayStatics::ApplyRadialDamage(this, DamageToDeal.Damage, Origin, DamageRadius,
-	                                           DamageToDeal.DamageTypeClass, IgnoreActors, GetDamageDealer(),
+	                                           DamageToDeal.DamageTypeClass, ActorsToIgnore, DamageDealer,
 	                                           GetDamageInstigator(),
 	                                           bDoFullDamage, DamagePreventionChannel);
 }
@@ -56,8 +77,28 @@ bool UJuicyDealDamageComponent::DealRadialDamageWithFalloff(const FJuicyDealDama
                                                             const TArray<AActor*>& IgnoreActors,
                                                             const ECollisionChannel DamagePreventionChannel) const
 {
+	TArray<AActor*> IgnoreActorsWithSelf{};
+	AActor* const DamageDealer = GetDamageDealer();
+
+	if (!bCanDealDamageToSelf && DamageDealer)
+	{
+		IgnoreActorsWithSelf = IgnoreActors;
+		IgnoreActorsWithSelf.Add(DamageDealer);
+	}
+
+	const auto& ActorsToIgnore = IgnoreActorsWithSelf.IsEmpty() ? IgnoreActors : IgnoreActorsWithSelf;
 	return UGameplayStatics::ApplyRadialDamageWithFalloff(this, DamageToDeal.Damage, MinimumDamage, Origin,
 	                                                      DamageInnerRadius, DamageOuterRadius, DamageFalloff,
-	                                                      DamageToDeal.DamageTypeClass, IgnoreActors, GetDamageDealer(),
+	                                                      DamageToDeal.DamageTypeClass, ActorsToIgnore, DamageDealer,
 	                                                      GetDamageInstigator(), DamagePreventionChannel);
+}
+
+bool UJuicyDealDamageComponent::CanDealDamageTo(const AActor* DamagedActor) const
+{
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const AController* DamagedActorInstigator = IsValid(DamagedActor)
+		                                            ? DamagedActor->GetInstigatorController()
+		                                            : nullptr;
+	return bCanDealDamageToSelf
+		|| (DamagedActor != GetDamageDealer() && DamagedActorInstigator != GetDamageInstigator());
 }

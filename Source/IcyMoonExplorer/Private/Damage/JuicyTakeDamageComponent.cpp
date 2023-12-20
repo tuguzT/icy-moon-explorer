@@ -131,7 +131,7 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
 	AController* const InstigatedBy,
 	AActor* const DamageCauser)
 {
-	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
+	if (CanTakeDamageDelegatedFromOwner(DamagedActor, InstigatedBy, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
@@ -155,7 +155,7 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	AActor* const DamageCauser)
 {
-	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
+	if (CanTakeDamageDelegatedFromOwner(DamagedActor, InstigatedBy, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
@@ -165,6 +165,7 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	AActor* const DamagedActor,
 	const float Damage,
 	const UDamageType* const DamageType,
@@ -174,7 +175,7 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 	AController* const InstigatedBy,
 	AActor* const DamageCauser)
 {
-	if (CanTakeDamageDelegatedFromOwner(DamagedActor, DamageCauser))
+	if (CanTakeDamageDelegatedFromOwner(DamagedActor, InstigatedBy, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
@@ -183,17 +184,17 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 }
 
 bool UJuicyTakeDamageComponent::CanTakeDamageDelegatedFromOwner(
-	// ReSharper disable once CppParameterMayBeConstPtrOrRef
-	AActor* const DamagedActor,
-	// ReSharper disable once CppParameterMayBeConstPtrOrRef
-	AActor* const DamageCauser) const
+	const AActor* const DamagedActor,
+	const AController* const InstigatedBy,
+	const AActor* const DamageCauser) const
 {
 	const AActor* Owner = GetOwner();
 	if (Owner != DamagedActor)
 	{
 		return false;
 	}
-	if (!bCanTakeDamageFromSelf && Owner == DamageCauser)
+	if (!bCanTakeDamageFromSelf
+		&& (Owner == DamageCauser || Owner->GetInstigatorController() == InstigatedBy))
 	{
 		return false;
 	}

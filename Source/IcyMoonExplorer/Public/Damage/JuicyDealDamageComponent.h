@@ -10,6 +10,9 @@ class ICYMOONEXPLORER_API UJuicyDealDamageComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(Category="Components|Deal Damage", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanDealDamageToSelf : 1;
+
 	explicit UJuicyDealDamageComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -36,4 +39,7 @@ public:
 	                                 float DamageInnerRadius, float DamageOuterRadius, float DamageFalloff,
 	                                 const TArray<AActor*>& IgnoreActors,
 	                                 ECollisionChannel DamagePreventionChannel = ECC_Visibility) const;
+
+private:
+	bool CanDealDamageTo(const AActor* DamagedActor) const;
 };
