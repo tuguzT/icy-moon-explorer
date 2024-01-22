@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "AI/JuicyAITeam.h"
 #include "Components/AGRAnimMasterComponent.h"
 #include "GameFramework/Character.h"
 #include "JuicyCharacter.generated.h"
@@ -7,7 +8,7 @@
 class UJuicyCharacterMovementComponent;
 
 UCLASS()
-class ICYMOONEXPLORER_API AJuicyCharacter : public ACharacter
+class ICYMOONEXPLORER_API AJuicyCharacter : public ACharacter, public IJuicyAITeam
 {
 	GENERATED_BODY()
 
@@ -195,6 +196,9 @@ public:
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Landed(const FHitResult& Hit) override;
+
+	virtual void SetTeamId_Implementation(uint8 TeamID) override;
+	virtual uint8 GetTeamId_Implementation() const override;
 
 private:
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))

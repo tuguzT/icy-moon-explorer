@@ -291,6 +291,23 @@ void AJuicyCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 }
 
+void AJuicyCharacter::SetTeamId_Implementation(const uint8 TeamID)
+{
+	if (Controller && Controller->Implements<UJuicyAITeam>())
+	{
+		Execute_SetTeamId(Controller, TeamID);
+	}
+}
+
+uint8 AJuicyCharacter::GetTeamId_Implementation() const
+{
+	if (Controller && Controller->Implements<UJuicyAITeam>())
+	{
+		return Execute_GetTeamId(Controller);
+	}
+	return FGenericTeamId::NoTeam;
+}
+
 void AJuicyCharacter::StartCoyoteTime()
 {
 	if (CoyoteTime <= 0.0f)
