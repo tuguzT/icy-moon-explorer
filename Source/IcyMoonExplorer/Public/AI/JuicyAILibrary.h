@@ -13,4 +13,7 @@ class ICYMOONEXPLORER_API UJuicyAILibrary : public UBlueprintFunctionLibrary
 public:
 	UFUNCTION(BlueprintPure, Category="AI|Team")
 	static ETeamAttitude::Type GetTeamAttitudeTowards(const AActor* Target, const AActor* Other);
+
+	UFUNCTION(BlueprintCallable, Category="AI")
+	static void UpdateSource(AActor* SourceActor);
 };

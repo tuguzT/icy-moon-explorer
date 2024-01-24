@@ -1,5 +1,6 @@
 ﻿#include "Character/JuicyCharacter.h"
 
+#include "AI/JuicyAILibrary.h"
 #include "Character/JuicyCharacterMovementComponent.h"
 
 namespace Detail
@@ -293,9 +294,11 @@ void AJuicyCharacter::Landed(const FHitResult& Hit)
 
 void AJuicyCharacter::SetTeamId_Implementation(const uint8 TeamID)
 {
-	if (Controller && Controller->Implements<UJuicyAITeam>())
+	if (Controller && Controller->Implements<UJuicyAITeam>()
+		&& Execute_GetTeamId(Controller) != TeamID)
 	{
 		Execute_SetTeamId(Controller, TeamID);
+		UJuicyAILibrary::UpdateSource(this);
 	}
 }
 
