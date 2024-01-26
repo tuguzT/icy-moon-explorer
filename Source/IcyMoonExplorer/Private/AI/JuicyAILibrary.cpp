@@ -29,7 +29,21 @@ void UJuicyAILibrary::UpdateSource(AActor* const SourceActor)
 	}
 
 	UWorld* World = SourceActor->GetWorld();
-	UAIPerceptionSystem* Perception = UAIPerceptionSystem::GetCurrent(World);
-	Perception->UnregisterSource(*SourceActor);
-	Perception->RegisterSource(*SourceActor);
+	UAIPerceptionSystem* PerceptionSystem = UAIPerceptionSystem::GetCurrent(World);
+	PerceptionSystem->UnregisterSource(*SourceActor);
+	PerceptionSystem->RegisterSource(*SourceActor);
+}
+
+void UJuicyAILibrary::SetAttitudeSolver(const FAttitudeSolverSignature& Solver)
+{
+	auto F = [Solver](const FGenericTeamId A, const FGenericTeamId B) -> ETeamAttitude::Type
+	{
+		return Solver.IsBound() ? Solver.Execute(A, B) : ETeamAttitude::Neutral;
+	};
+	FGenericTeamId::SetAttitudeSolver(F);
+}
+
+void UJuicyAILibrary::ResetAttitudeSolver()
+{
+	FGenericTeamId::ResetAttitudeSolver();
 }
