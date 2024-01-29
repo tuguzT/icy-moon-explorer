@@ -292,6 +292,16 @@ void AJuicyCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 }
 
+void AJuicyCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
+{
+	K2_GetActorEyesViewPoint(OutLocation, OutRotation);
+}
+
+void AJuicyCharacter::K2_GetActorEyesViewPoint_Implementation(FVector& OutLocation, FRotator& OutRotation) const
+{
+	Super::GetActorEyesViewPoint(OutLocation, OutRotation);
+}
+
 void AJuicyCharacter::SetTeamId_Implementation(const uint8 TeamID)
 {
 	if (Controller && Controller->Implements<UJuicyAITeam>()

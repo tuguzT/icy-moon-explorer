@@ -197,6 +197,12 @@ public:
 	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Landed(const FHitResult& Hit) override;
 
+	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintPure,
+		meta=(DisplayName="GetActorEyesViewPoint", ScriptName="GetActorEyesViewPoint"))
+	void K2_GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
+
 	virtual void SetTeamId_Implementation(uint8 TeamID) override;
 	virtual uint8 GetTeamId_Implementation() const override;
 
