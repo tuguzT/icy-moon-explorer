@@ -1,5 +1,35 @@
 ﻿#include "Damage/JuicyDamageLibrary.h"
 
+bool UJuicyDamageLibrary::CanDealDamageTo(const AActor* Dealer,
+                                          const AActor* Target,
+                                          const AController* DealerInstigator,
+                                          const AController* TargetInstigator,
+                                          const bool bCanDealDamageToSelf,
+                                          const TEnumAsByte<ETeamAttitude::Type> CanDealDamageByTeamAttitude)
+{
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const bool bIsSelf =
+		Dealer == Target ||
+		DealerInstigator == TargetInstigator;
+	if (!bCanDealDamageToSelf && bIsSelf)
+	{
+		return false;
+	}
+
+	const auto TeamAttitude = FGenericTeamId::GetAttitude(Dealer, Target);
+	const auto InstigatorTeamAttitude = FGenericTeamId::GetAttitude(DealerInstigator, TargetInstigator);
+	// ReSharper disable once CppTooWideScopeInitStatement
+	const bool bCanDealDamageByTeamAttitude =
+		TeamAttitude >= CanDealDamageByTeamAttitude &&
+		InstigatorTeamAttitude >= CanDealDamageByTeamAttitude;
+	if (!bCanDealDamageByTeamAttitude)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 bool UJuicyDamageLibrary::IsDealingHeal(const FJuicyDealDamage& DamageToDeal)
 {
 	return DamageToDeal.IsHealing();

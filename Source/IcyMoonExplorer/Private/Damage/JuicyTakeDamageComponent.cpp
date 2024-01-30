@@ -12,6 +12,7 @@ UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& O
 	Health = MaxHealth;
 	TakeDamageCooldown = 0.5f;
 	bCanTakeDamageFromSelf = true;
+	CanTakeDamageByTeamAttitude = ETeamAttitude::Neutral;
 	bProcessResistancesAutomatically = true;
 	bCanEverRevive = false;
 	ReviveHealth = MaxHealth;
@@ -67,7 +68,12 @@ void UJuicyTakeDamageComponent::SetMaxHealth(const float NewMaxHealth)
 	{
 		return;
 	}
+
 	MaxHealth = NewMaxHealth;
+	if (MaxHealth < Health)
+	{
+		SetHealthRaw(MaxHealth);
+	}
 }
 
 bool UJuicyTakeDamageComponent::CanTakeDamage() const
@@ -131,7 +137,7 @@ void UJuicyTakeDamageComponent::OnTakeAnyDamageDelegatedFromOwner(
 	AController* const InstigatedBy,
 	AActor* const DamageCauser)
 {
-	if (CanTakeDamageDelegatedFromOwner(DamagedActor, InstigatedBy, DamageCauser))
+	if (CanTakeDamageFrom(DamagedActor, InstigatedBy, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
@@ -155,7 +161,7 @@ void UJuicyTakeDamageComponent::OnTakePointDamageDelegatedFromOwner(
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	AActor* const DamageCauser)
 {
-	if (CanTakeDamageDelegatedFromOwner(DamagedActor, InstigatedBy, DamageCauser))
+	if (CanTakeDamageFrom(DamagedActor, InstigatedBy, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
@@ -175,7 +181,7 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 	AController* const InstigatedBy,
 	AActor* const DamageCauser)
 {
-	if (CanTakeDamageDelegatedFromOwner(DamagedActor, InstigatedBy, DamageCauser))
+	if (CanTakeDamageFrom(DamagedActor, InstigatedBy, DamageCauser))
 	{
 		auto DamageToTake = FJuicyTakeDamage{Damage, DamageType, DamageCauser, InstigatedBy};
 		ProcessResistancesAutomatically(DamageToTake, DamagedActor);
@@ -183,22 +189,23 @@ void UJuicyTakeDamageComponent::OnTakeRadialDamageDelegatedFromOwner(
 	}
 }
 
-bool UJuicyTakeDamageComponent::CanTakeDamageDelegatedFromOwner(
+bool UJuicyTakeDamageComponent::CanTakeDamageFrom(
 	const AActor* const DamagedActor,
 	const AController* const InstigatedBy,
 	const AActor* const DamageCauser) const
 {
-	const AActor* Owner = GetOwner();
-	if (Owner != DamagedActor)
+	if (GetOwner() != DamagedActor)
 	{
 		return false;
 	}
-	if (!bCanTakeDamageFromSelf
-		&& (Owner == DamageCauser || Owner->GetInstigatorController() == InstigatedBy))
-	{
-		return false;
-	}
-	return true;
+
+	const AActor* Dealer = DamageCauser;
+	const AActor* Target = DamagedActor;
+	const AController* DealerInstigator = InstigatedBy;
+	const AController* TargetInstigator = IsValid(Target) ? Target->GetInstigatorController() : nullptr;
+
+	return UJuicyDamageLibrary::CanDealDamageTo(Dealer, Target, DealerInstigator, TargetInstigator,
+	                                            bCanTakeDamageFromSelf, CanTakeDamageByTeamAttitude);
 }
 
 void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)
@@ -207,7 +214,7 @@ void UJuicyTakeDamageComponent::SetHealthRaw(const float NewHealth)
 }
 
 void UJuicyTakeDamageComponent::ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake,
-                                                                const AActor* DamagedActor) const
+                                                                const AActor* const DamagedActor) const
 {
 	if (!bProcessResistancesAutomatically)
 	{

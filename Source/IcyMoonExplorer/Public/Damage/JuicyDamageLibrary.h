@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "GenericTeamAgentInterface.h"
 #include "JuicyDealDamage.h"
 #include "JuicyDamageResistance.h"
 #include "JuicyDamageLibrary.generated.h"
@@ -11,6 +12,14 @@ class ICYMOONEXPLORER_API UJuicyDamageLibrary final : public UBlueprintFunctionL
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category="Deal Damage")
+	static bool CanDealDamageTo(const AActor* Dealer,
+	                            const AActor* Target,
+	                            const AController* DealerInstigator,
+	                            const AController* TargetInstigator,
+	                            bool bCanDealDamageToSelf = true,
+	                            TEnumAsByte<ETeamAttitude::Type> CanDealDamageByTeamAttitude = ETeamAttitude::Neutral);
+
 	UFUNCTION(BlueprintPure, Category="Deal Damage")
 	static bool IsDealingHeal(const FJuicyDealDamage& DamageToDeal);
 

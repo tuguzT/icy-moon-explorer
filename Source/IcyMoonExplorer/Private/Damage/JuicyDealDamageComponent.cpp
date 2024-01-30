@@ -1,12 +1,15 @@
 ﻿#include "Damage/JuicyDealDamageComponent.h"
 
+#include "Damage/JuicyDamageLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
 UJuicyDealDamageComponent::UJuicyDealDamageComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
+
 	bCanDealDamageToSelf = true;
+	CanDealDamageByTeamAttitude = ETeamAttitude::Neutral;
 }
 
 AActor* UJuicyDealDamageComponent::GetDamageDealer() const
@@ -93,12 +96,13 @@ bool UJuicyDealDamageComponent::DealRadialDamageWithFalloff(const FJuicyDealDama
 	                                                      GetDamageInstigator(), DamagePreventionChannel);
 }
 
-bool UJuicyDealDamageComponent::CanDealDamageTo(const AActor* DamagedActor) const
+bool UJuicyDealDamageComponent::CanDealDamageTo(const AActor* const DamagedActor) const
 {
-	// ReSharper disable once CppTooWideScopeInitStatement
-	const AController* DamagedActorInstigator = IsValid(DamagedActor)
-		                                            ? DamagedActor->GetInstigatorController()
-		                                            : nullptr;
-	return bCanDealDamageToSelf
-		|| (DamagedActor != GetDamageDealer() && DamagedActorInstigator != GetDamageInstigator());
+	const AActor* Dealer = GetDamageDealer();
+	const AActor* Target = DamagedActor;
+	const AController* DealerInstigator = GetDamageInstigator();
+	const AController* TargetInstigator = IsValid(Target) ? Target->GetInstigatorController() : nullptr;
+
+	return UJuicyDamageLibrary::CanDealDamageTo(Dealer, Target, DealerInstigator, TargetInstigator,
+	                                            bCanDealDamageToSelf, CanDealDamageByTeamAttitude);
 }

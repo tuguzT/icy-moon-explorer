@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Components/ActorComponent.h"
+#include "GenericTeamAgentInterface.h"
 #include "JuicyDealDamage.h"
 #include "JuicyDealDamageComponent.generated.h"
 
@@ -10,8 +11,11 @@ class ICYMOONEXPLORER_API UJuicyDealDamageComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Category="Components|Deal Damage", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Deal Damage", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanDealDamageToSelf : 1;
+
+	UPROPERTY(Category="Deal Damage", EditAnywhere, BlueprintReadWrite)
+	TEnumAsByte<ETeamAttitude::Type> CanDealDamageByTeamAttitude;
 
 	explicit UJuicyDealDamageComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

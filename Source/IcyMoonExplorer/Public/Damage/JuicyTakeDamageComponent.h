@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Components/ActorComponent.h"
+#include "GenericTeamAgentInterface.h"
 #include "JuicyDamageResistance.h"
 #include "JuicyTakeDamageComponent.generated.h"
 
@@ -131,6 +132,9 @@ public:
 	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
 	uint8 bCanTakeDamageFromSelf : 1;
 
+	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
+	TEnumAsByte<ETeamAttitude::Type> CanTakeDamageByTeamAttitude;
+
 	UPROPERTY(Category="Take Damage: Resistance", EditAnywhere, BlueprintReadWrite)
 	TArray<FJuicyDamageResistance> DamageResistances;
 
@@ -163,9 +167,9 @@ private:
 	void OnTakeRadialDamageDelegatedFromOwner(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	                                          FVector Origin, const FHitResult& HitInfo, AController* InstigatedBy,
 	                                          AActor* DamageCauser);
-	bool CanTakeDamageDelegatedFromOwner(const AActor* DamagedActor,
-	                                     const AController* InstigatedBy,
-	                                     const AActor* DamageCauser) const;
+	bool CanTakeDamageFrom(const AActor* DamagedActor,
+	                       const AController* InstigatedBy,
+	                       const AActor* DamageCauser) const;
 
 	void SetHealthRaw(float NewHealth);
 	void ProcessResistancesAutomatically(FJuicyTakeDamage& DamageToTake,
