@@ -9,7 +9,7 @@ UJuicyDealDamageComponent::UJuicyDealDamageComponent(const FObjectInitializer& O
 	bAutoActivate = true;
 
 	bCanDealDamageToSelf = true;
-	CanDealDamageByTeamAttitude = ETeamAttitude::Neutral;
+	CanDealDamageByTeamAttitude = ETeamAttitude::Friendly;
 }
 
 AActor* UJuicyDealDamageComponent::GetDamageDealer() const

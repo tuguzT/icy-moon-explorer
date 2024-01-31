@@ -12,7 +12,7 @@ UJuicyTakeDamageComponent::UJuicyTakeDamageComponent(const FObjectInitializer& O
 	Health = MaxHealth;
 	TakeDamageCooldown = 0.5f;
 	bCanTakeDamageFromSelf = true;
-	CanTakeDamageByTeamAttitude = ETeamAttitude::Neutral;
+	CanTakeDamageByTeamAttitude = ETeamAttitude::Friendly;
 	bProcessResistancesAutomatically = true;
 	bCanEverRevive = false;
 	ReviveHealth = MaxHealth;
