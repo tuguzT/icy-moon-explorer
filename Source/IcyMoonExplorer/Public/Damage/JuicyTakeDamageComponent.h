@@ -126,7 +126,7 @@ protected:
 
 public:
 	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite,
-		meta=(ClampMin="0", UIMin="0", ForceUnits="points"))
+		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
 	float TakeDamageCooldown;
 
 	UPROPERTY(Category="Take Damage (General Settings)", EditAnywhere, BlueprintReadWrite)
