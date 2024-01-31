@@ -13,7 +13,7 @@ class ICYMOONEXPLORER_API AJuicyCharacter : public ACharacter, public IJuicyAITe
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Category=Character, EditAnywhere, BlueprintReadWrite,
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Character,
 		meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
 	float CoyoteTime;
 
@@ -42,13 +42,13 @@ public:
 
 	virtual void OnStartSlide();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartSlide", ScriptName="OnStartSlide"))
 	void K2_OnStartSlide();
 
 	virtual void OnEndSlide();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndSlide", ScriptName="OnEndSlide"))
 	void K2_OnEndSlide();
 
@@ -69,30 +69,42 @@ public:
 
 	virtual void OnStartDash();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartDash", ScriptName="OnStartDash"))
 	void K2_OnStartDash();
 
 	virtual void OnEndDash();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndDash", ScriptName="OnEndDash"))
 	void K2_OnEndDash();
 
 	virtual void OnStartDashCooldown();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartDashCooldown", ScriptName="OnStartDashCooldown"))
 	void K2_OnStartDashCooldown();
 
 	virtual void OnEndDashCooldown();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndDashCooldown", ScriptName="OnEndDashCooldown"))
 	void K2_OnEndDashCooldown();
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsCoyoteTime() const;
+
+	virtual void OnStartCoyoteTime();
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
+		meta=(DisplayName="OnStartCoyoteTime", ScriptName="OnStartCoyoteTime"))
+	void K2_OnStartCoyoteTime();
+
+	virtual void OnEndCoyoteTime();
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
+		meta=(DisplayName="OnEndCoyoteTime", ScriptName="OnEndCoyoteTime"))
+	void K2_OnEndCoyoteTime();
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void Mantle();
@@ -108,7 +120,7 @@ public:
 
 	virtual void OnStartMantle(const FHitResult& FrontHit, const FHitResult& SurfaceHit);
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartMantle", ScriptName="OnStartMantle"))
 	void K2_OnStartMantle(const FHitResult& FrontHit, const FHitResult& SurfaceHit);
 
@@ -117,7 +129,7 @@ public:
 
 	virtual void OnEndMantle();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndMantle", ScriptName="OnEndMantle"))
 	void K2_OnEndMantle();
 
@@ -132,25 +144,25 @@ public:
 
 	virtual void OnStartWallRun(const FHitResult& FloorHit, const FHitResult& WallHit);
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartWallRun", ScriptName="OnStartWallRun"))
 	void K2_OnStartWallRun(const FHitResult& FloorHit, const FHitResult& WallHit);
 
 	virtual void OnEndWallRun();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndWallRun", ScriptName="OnEndWallRun"))
 	void K2_OnEndWallRun();
 
 	virtual void OnStartWallRunCooldown();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartWallRunCooldown", ScriptName="OnStartWallRunCooldown"))
 	void K2_OnStartWallRunCooldown();
 
 	virtual void OnEndWallRunCooldown();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndWallRunCooldown", ScriptName="OnEndWallRunCooldown"))
 	void K2_OnEndWallRunCooldown();
 
@@ -165,25 +177,25 @@ public:
 
 	virtual void OnStartWallHang(const FHitResult& FloorHit, const FHitResult& WallHit);
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartWallHang", ScriptName="OnStartWallHang"))
 	void K2_OnStartWallHang(const FHitResult& FloorHit, const FHitResult& WallHit);
 
 	virtual void OnEndWallHang();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndWallHang", ScriptName="OnEndWallHang"))
 	void K2_OnEndWallHang();
 
 	virtual void OnStartWallHangCooldown();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnStartWallHangCooldown", ScriptName="OnStartWallHangCooldown"))
 	void K2_OnStartWallHangCooldown();
 
 	virtual void OnEndWallHangCooldown();
 
-	UFUNCTION(BlueprintImplementableEvent,
+	UFUNCTION(BlueprintImplementableEvent, Category=Character,
 		meta=(DisplayName="OnEndWallHangCooldown", ScriptName="OnEndWallHangCooldown"))
 	void K2_OnEndWallHangCooldown();
 
@@ -199,7 +211,7 @@ public:
 
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintPure,
+	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category=Character,
 		meta=(DisplayName="GetActorEyesViewPoint", ScriptName="GetActorEyesViewPoint"))
 	void K2_GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const;
 

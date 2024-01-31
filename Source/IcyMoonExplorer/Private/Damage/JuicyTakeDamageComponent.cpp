@@ -68,11 +68,15 @@ void UJuicyTakeDamageComponent::SetMaxHealth(const float NewMaxHealth)
 	{
 		return;
 	}
-
 	MaxHealth = NewMaxHealth;
-	if (MaxHealth < Health)
+
+	if (Health > MaxHealth)
 	{
-		SetHealthRaw(MaxHealth);
+		// Forget old timer to be sure health will be changed
+		// and cooldown events will be fired even if any cooldown exists
+		TimerHandleForTakeDamageCooldown = FTimerHandle{};
+
+		SetHealth(MaxHealth);
 	}
 }
 
@@ -240,7 +244,6 @@ void UJuicyTakeDamageComponent::StartTakeDamageCooldown()
 
 void UJuicyTakeDamageComponent::EndTakeDamageCooldown()
 {
-	FTimerManager& TimerManager = GetOwner()->GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForTakeDamageCooldown);
+	TimerHandleForTakeDamageCooldown = FTimerHandle{};
 	OnEndTakeDamageCooldown.Broadcast();
 }

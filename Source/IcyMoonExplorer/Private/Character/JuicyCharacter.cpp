@@ -132,6 +132,16 @@ bool AJuicyCharacter::IsCoyoteTime() const
 	return TimerManager.IsTimerActive(TimerHandleForCoyoteTime);
 }
 
+void AJuicyCharacter::OnStartCoyoteTime()
+{
+	K2_OnStartCoyoteTime();
+}
+
+void AJuicyCharacter::OnEndCoyoteTime()
+{
+	K2_OnEndCoyoteTime();
+}
+
 void AJuicyCharacter::Mantle()
 {
 	if (CanMantle())
@@ -331,10 +341,11 @@ void AJuicyCharacter::StartCoyoteTime()
 	FTimerManager& TimerManager = GetWorldTimerManager();
 	TimerManager.SetTimer(TimerHandleForCoyoteTime, this,
 	                      &AJuicyCharacter::EndCoyoteTime, CoyoteTime);
+	OnStartCoyoteTime();
 }
 
 void AJuicyCharacter::EndCoyoteTime()
 {
-	FTimerManager& TimerManager = GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForCoyoteTime);
+	TimerHandleForCoyoteTime = FTimerHandle{};
+	OnEndCoyoteTime();
 }

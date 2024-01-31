@@ -1253,8 +1253,7 @@ void UJuicyCharacterMovementComponent::EndDash()
 	Super::SetMovementMode(MOVE_Falling);
 	Velocity = CurrentDashDirection.GetSafeNormal() * MaxWalkSpeed;
 
-	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForDashDuration);
+	TimerHandleForDashDuration = FTimerHandle{};
 	GetJuicyCharacterOwner()->OnEndDash();
 
 	StartDashCooldown();
@@ -1276,8 +1275,7 @@ void UJuicyCharacterMovementComponent::StartDashCooldown()
 
 void UJuicyCharacterMovementComponent::EndDashCooldown()
 {
-	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForDashCooldown);
+	TimerHandleForDashCooldown = FTimerHandle{};
 	GetJuicyCharacterOwner()->OnEndDashCooldown();
 }
 
@@ -1331,8 +1329,7 @@ void UJuicyCharacterMovementComponent::StartWallRunCooldown()
 
 void UJuicyCharacterMovementComponent::EndWallRunCooldown()
 {
-	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForWallRunCooldown);
+	TimerHandleForWallRunCooldown = FTimerHandle{};
 	GetJuicyCharacterOwner()->OnEndWallRunCooldown();
 }
 
@@ -1366,8 +1363,7 @@ void UJuicyCharacterMovementComponent::StartWallHangCooldown()
 
 void UJuicyCharacterMovementComponent::EndWallHangCooldown()
 {
-	FTimerManager& TimerManager = CharacterOwner->GetWorldTimerManager();
-	TimerManager.ClearTimer(TimerHandleForWallHangCooldown);
+	TimerHandleForWallHangCooldown = FTimerHandle{};
 	GetJuicyCharacterOwner()->OnEndWallHangCooldown();
 }
 
