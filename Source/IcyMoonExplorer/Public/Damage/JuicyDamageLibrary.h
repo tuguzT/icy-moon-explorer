@@ -18,7 +18,7 @@ public:
 	                            const AController* DealerInstigator,
 	                            const AController* TargetInstigator,
 	                            bool bCanDealDamageToSelf = true,
-	                            TEnumAsByte<ETeamAttitude::Type> CanDealDamageByTeamAttitude = ETeamAttitude::Neutral);
+	                            TEnumAsByte<ETeamAttitude::Type> CanDealDamageByTeamAttitude = ETeamAttitude::Friendly);
 
 	UFUNCTION(BlueprintPure, Category="Deal Damage")
 	static bool IsDealingHeal(const FJuicyDealDamage& DamageToDeal);
