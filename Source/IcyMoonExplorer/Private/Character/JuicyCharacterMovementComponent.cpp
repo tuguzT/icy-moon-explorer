@@ -36,12 +36,14 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	SlideFriction = GroundFriction;
 	BrakingDecelerationSliding = BrakingDecelerationWalking;
 	bCanSlideOffLedges = bCanWalkOffLedges;
+	bCanEverSlide = false;
 	bWantsToSlide = false;
 
 	DashImpulse = MaxWalkSpeed * 3.0f;
 	DashDuration = 0.5f;
 	DashCooldown = 1.0f;
 	DashGravityScale = 0.0f;
+	bCanEverDash = false;
 	bWantsToDash = false;
 
 	MantleMaxDistance = DefaultCapsuleRadius;
@@ -50,6 +52,7 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	MantleMaxSurfaceAngle = 40.0f;
 	MantleMaxAlignmentAngle = 45.0f;
 	MantleWallCheckFrequency = 5;
+	bCanEverMantle = false;
 	bWantsToMantle = false;
 	bIsMantling = false;
 
@@ -59,12 +62,14 @@ UJuicyCharacterMovementComponent::UJuicyCharacterMovementComponent(const FObject
 	WallRunGravityScale = 0.0f;
 	WallRunMaxGravityVelocity = 100.0f;
 	WallRunCooldown = 0.5f;
+	bCanEverWallRun = false;
 
 	MaxWallHangSpeed = MaxWalkSpeed;
 	WallHangGravityScale = 0.0f;
 	WallHangMaxGravityVelocity = 100.0f;
 	BrakingDecelerationWallHanging = BrakingDecelerationWalking;
 	WallHangCooldown = 0.5f;
+	bCanEverWallHang = false;
 
 	MaxWallDistance = DefaultCapsuleRadius;
 	MinHeightAboveFloor = DefaultCapsuleHalfHeight;
@@ -126,8 +131,9 @@ bool UJuicyCharacterMovementComponent::IsSliding() const
 
 bool UJuicyCharacterMovementComponent::CanSlideInCurrentState() const
 {
-	const bool bEnoughVelocity = FVector2D(Velocity).SquaredLength() >= FMath::Pow(SlideMinHorizontalSpeed, 2);
-	return HasInput()
+	const bool bEnoughVelocity = FVector2D{Velocity}.SquaredLength() >= FMath::Pow(SlideMinHorizontalSpeed, 2);
+	return bCanEverSlide
+		&& HasInput()
 		&& bEnoughVelocity
 		&& IsMovingOnGround()
 		&& !IsMantling()
@@ -184,7 +190,8 @@ bool UJuicyCharacterMovementComponent::CanDashInCurrentState() const
 	const bool bIsNotDashingCooldown = !IsDashingCooldown();
 	const bool bIsNotMantling = !IsMantling();
 
-	return UpdatedComponent
+	return bCanEverDash
+		&& UpdatedComponent
 		&& bIsAllowedMode
 		&& bIsNotDashing
 		&& bIsNotDashingCooldown
@@ -222,7 +229,8 @@ bool UJuicyCharacterMovementComponent::CanMantleInCurrentState() const
 	const bool bIsNotDashing = !IsDashing();
 	const bool bIsNotMantling = !IsMantling();
 
-	return UpdatedComponent
+	return bCanEverMantle
+		&& UpdatedComponent
 		&& bIsAllowedMode
 		&& bIsNotDashing
 		&& bIsNotMantling;
@@ -258,7 +266,8 @@ bool UJuicyCharacterMovementComponent::IsWallRunningCooldown() const
 
 bool UJuicyCharacterMovementComponent::CanWallRunInCurrentState() const
 {
-	return HasInput()
+	return bCanEverWallRun
+		&& HasInput()
 		&& IsFalling()
 		&& !IsDashing()
 		&& !IsMantling()
@@ -283,7 +292,8 @@ bool UJuicyCharacterMovementComponent::IsWallHangingCooldown() const
 
 bool UJuicyCharacterMovementComponent::CanWallHangInCurrentState() const
 {
-	return HasInput()
+	return bCanEverWallHang
+		&& HasInput()
 		&& IsFalling()
 		&& !IsDashing()
 		&& !IsMantling()

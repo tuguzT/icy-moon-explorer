@@ -136,17 +136,32 @@ public:
 		meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float JumpOffWallVerticalVelocity;
 
+	UPROPERTY(Category="Character Movement: Sliding", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanEverSlide : 1;
+
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToSlide : 1;
 
+	UPROPERTY(Category="Character Movement: Dashing", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanEverDash : 1;
+
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToDash : 1;
+
+	UPROPERTY(Category="Character Movement: Mantling", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanEverMantle : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToMantle : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bIsMantling : 1;
+
+	UPROPERTY(Category="Character Movement: Wall Run", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanEverWallRun : 1;
+
+	UPROPERTY(Category="Character Movement: Wall Hang", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanEverWallHang : 1;
 
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	FVector WallNormal;
