@@ -5,7 +5,8 @@
 #include "JuicyAIAttack.generated.h"
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_DELEGATE(FOnAttackEndSignature);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAttackEndSignature,
+                                  bool, Success);
 
 UINTERFACE(BlueprintType, Blueprintable, Category="AI", DisplayName="Juicy AI Attack")
 class UJuicyAIAttack : public UInterface
