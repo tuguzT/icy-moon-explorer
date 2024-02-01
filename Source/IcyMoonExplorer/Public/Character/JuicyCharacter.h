@@ -219,10 +219,13 @@ public:
 	virtual uint8 GetTeamId_Implementation() const override;
 
 private:
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly,
+		meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UAGRAnimMasterComponent> AnimMaster;
 
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly,
+		DisplayName="Character Movement",
+		meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UJuicyCharacterMovementComponent> JuicyCharacterMovement;
 
 	FTimerHandle TimerHandleForCoyoteTime;

@@ -6,7 +6,7 @@
 
 class AJuicyCharacter;
 
-UCLASS()
+UCLASS(Blueprintable)
 class ICYMOONEXPLORER_API UJuicyCharacterMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
