@@ -8,7 +8,7 @@ public class IcyMoonExplorer : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "AIModule",
+			"Core", "CoreUObject", "Engine", "InputCore", "AIModule", "GameplayTags",
 			"EasyBallistics", "AGRPRO", "ActorInteractionPlugin"
 		});
 
