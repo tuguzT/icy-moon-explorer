@@ -6,7 +6,13 @@ UJuicyEquipmentManager::UJuicyEquipmentManager()
 {
 }
 
-bool UJuicyEquipmentManager::GetAllItemsFromRegistry_Implementation(TArray<AActor*>& OutItems) const
+TMap<FJuicyEquipmentRegistryGroup, FNestedActors> UJuicyEquipmentManager::GetEquipmentRegistry_Implementation() const
+{
+	return EquipmentRegistry;
+}
+
+bool UJuicyEquipmentManager::GetAllItemsFromRegistry_Implementation(
+	TArray<AActor*>& OutItems) const
 {
 	OutItems.Reset();
 
@@ -25,12 +31,13 @@ bool UJuicyEquipmentManager::GetAllItemsFromRegistry_Implementation(TArray<AActo
 	return !OutItems.IsEmpty();
 }
 
-bool UJuicyEquipmentManager::GetAllItemsFromRegistryByTag_Implementation(const FGameplayTag Tag,
-                                                                         TArray<AActor*>& OutItems) const
+bool UJuicyEquipmentManager::GetAllItemsOfGroupFromRegistry_Implementation(
+	const FJuicyEquipmentRegistryGroup Group,
+	TArray<AActor*>& OutItems) const
 {
 	OutItems.Reset();
 
-	if (const FNestedActors* NestedItems = EquipmentRegistry.Find(Tag);
+	if (const FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 		NestedItems != nullptr)
 	{
 		const TArray<AActor*>& Items = NestedItems->Actors;
@@ -48,10 +55,11 @@ bool UJuicyEquipmentManager::GetAllItemsFromRegistryByTag_Implementation(const F
 	return !OutItems.IsEmpty();
 }
 
-bool UJuicyEquipmentManager::GetItemFromRegistryByTag_Implementation(const int32 Index, const FGameplayTag Tag,
-                                                                     AActor*& OutItem) const
+bool UJuicyEquipmentManager::GetItemOfGroupFromRegistry_Implementation(
+	const FJuicyEquipmentRegistryGroup Group, const int32 Index,
+	AActor*& OutItem) const
 {
-	const FNestedActors* NestedItems = EquipmentRegistry.Find(Tag);
+	const FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -87,8 +95,9 @@ bool UJuicyEquipmentManager::IsRegistryEmpty_Implementation() const
 	return true;
 }
 
-bool UJuicyEquipmentManager::FindItemInRegistry_Implementation(AActor* const Item,
-                                                               int32& OutIndex, FGameplayTag& OutTag) const
+bool UJuicyEquipmentManager::FindItemInRegistry_Implementation(
+	AActor* const Item, const FGameplayTagContainer GroupLabels,
+	FJuicyEquipmentRegistryGroup& OutGroup, int32& OutIndex) const
 {
 	const UAGR_ItemComponent* ItemComponent = UAGRLibrary::GetItemComponent(Item);
 	if (ItemComponent == nullptr)
@@ -96,8 +105,8 @@ bool UJuicyEquipmentManager::FindItemInRegistry_Implementation(AActor* const Ite
 		return false;
 	}
 
-	const FGameplayTag ItemTag = ItemComponent->ItemTagSlotType;
-	const FNestedActors* NestedItems = EquipmentRegistry.Find(ItemTag);
+	const FJuicyEquipmentRegistryGroup Group{ItemComponent->ItemTagSlotType, GroupLabels};
+	const FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -110,11 +119,12 @@ bool UJuicyEquipmentManager::FindItemInRegistry_Implementation(AActor* const Ite
 		return false;
 	}
 
-	OutTag = ItemTag;
+	OutGroup = Group;
 	return true;
 }
 
-bool UJuicyEquipmentManager::IsItemRegistered_Implementation(AActor* Item) const
+bool UJuicyEquipmentManager::IsItemRegistered_Implementation(
+	AActor* const Item, const FGameplayTagContainer GroupLabels) const
 {
 	const UAGR_ItemComponent* ItemComponent = UAGRLibrary::GetItemComponent(Item);
 	if (ItemComponent == nullptr)
@@ -122,8 +132,8 @@ bool UJuicyEquipmentManager::IsItemRegistered_Implementation(AActor* Item) const
 		return false;
 	}
 
-	const FGameplayTag ItemTag = ItemComponent->ItemTagSlotType;
-	const FNestedActors* NestedItems = EquipmentRegistry.Find(ItemTag);
+	const FJuicyEquipmentRegistryGroup Group{ItemComponent->ItemTagSlotType, GroupLabels};
+	const FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -133,9 +143,10 @@ bool UJuicyEquipmentManager::IsItemRegistered_Implementation(AActor* Item) const
 	return Items.Contains(Item);
 }
 
-bool UJuicyEquipmentManager::IsItemRegisteredByTag_Implementation(const int32 Index, const FGameplayTag Tag) const
+bool UJuicyEquipmentManager::IsItemOfGroupRegistered_Implementation(
+	const FJuicyEquipmentRegistryGroup Group, const int32 Index) const
 {
-	const FNestedActors* NestedItems = EquipmentRegistry.Find(Tag);
+	const FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -151,8 +162,20 @@ bool UJuicyEquipmentManager::IsItemRegisteredByTag_Implementation(const int32 In
 	return IsValid(Item);
 }
 
-bool UJuicyEquipmentManager::RegisterItem_Implementation(AActor* Item,
-                                                         int32& OutIndex, FGameplayTag& OutTag)
+void UJuicyEquipmentManager::SetupDefineRegistry_Implementation(
+	const TMap<FJuicyEquipmentRegistryGroup, FNestedActors>& Registry)
+{
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	EquipmentRegistry = Registry;
+}
+
+bool UJuicyEquipmentManager::RegisterItem_Implementation(
+	AActor* const Item, const FGameplayTagContainer GroupLabels,
+	FJuicyEquipmentRegistryGroup& OutGroup, int32& OutIndex)
 {
 	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
 	{
@@ -165,8 +188,8 @@ bool UJuicyEquipmentManager::RegisterItem_Implementation(AActor* Item,
 		return false;
 	}
 
-	const FGameplayTag ItemTag = ItemComponent->ItemTagSlotType;
-	FNestedActors* NestedItems = EquipmentRegistry.Find(ItemTag);
+	const FJuicyEquipmentRegistryGroup Group{ItemComponent->ItemTagSlotType, GroupLabels};
+	FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -174,12 +197,13 @@ bool UJuicyEquipmentManager::RegisterItem_Implementation(AActor* Item,
 
 	TArray<AActor*>& Items = NestedItems->Actors;
 	OutIndex = Items.AddUnique(Item);
-	OutTag = ItemTag;
+	OutGroup = Group;
 	return true;
 }
 
-bool UJuicyEquipmentManager::RegisterItemByIndex_Implementation(AActor* Item, const int32 Index,
-                                                                FGameplayTag& OutTag)
+bool UJuicyEquipmentManager::RegisterItemByIndex_Implementation(
+	AActor* const Item, const FGameplayTagContainer GroupLabels, const int32 Index,
+	FJuicyEquipmentRegistryGroup& OutGroup)
 {
 	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
 	{
@@ -192,8 +216,8 @@ bool UJuicyEquipmentManager::RegisterItemByIndex_Implementation(AActor* Item, co
 		return false;
 	}
 
-	const FGameplayTag ItemTag = ItemComponent->ItemTagSlotType;
-	FNestedActors* NestedItems = EquipmentRegistry.Find(ItemTag);
+	const FJuicyEquipmentRegistryGroup Group{ItemComponent->ItemTagSlotType, GroupLabels};
+	FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -206,12 +230,13 @@ bool UJuicyEquipmentManager::RegisterItemByIndex_Implementation(AActor* Item, co
 	}
 
 	Items.Insert(Item, Index);
-	OutTag = ItemTag;
+	OutGroup = Group;
 	return true;
 }
 
-bool UJuicyEquipmentManager::UnregisterItem_Implementation(AActor* Item,
-                                                           FGameplayTag& OutTag)
+bool UJuicyEquipmentManager::UnregisterItem_Implementation(
+	AActor* const Item, const FGameplayTagContainer GroupLabels,
+	FJuicyEquipmentRegistryGroup& OutGroup)
 {
 	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
 	{
@@ -224,8 +249,8 @@ bool UJuicyEquipmentManager::UnregisterItem_Implementation(AActor* Item,
 		return false;
 	}
 
-	const FGameplayTag ItemTag = ItemComponent->ItemTagSlotType;
-	FNestedActors* NestedItems = EquipmentRegistry.Find(ItemTag);
+	const FJuicyEquipmentRegistryGroup Group{ItemComponent->ItemTagSlotType, GroupLabels};
+	FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -233,18 +258,19 @@ bool UJuicyEquipmentManager::UnregisterItem_Implementation(AActor* Item,
 
 	TArray<AActor*>& Items = NestedItems->Actors;
 	Items.RemoveSingle(Item);
-	OutTag = ItemTag;
+	OutGroup = Group;
 	return true;
 }
 
-bool UJuicyEquipmentManager::UnregisterItemByTag_Implementation(const int32 Index, const FGameplayTag Tag)
+bool UJuicyEquipmentManager::UnregisterItemOfGroup_Implementation(
+	const FJuicyEquipmentRegistryGroup Group, const int32 Index)
 {
 	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
 	{
 		return false;
 	}
 
-	FNestedActors* NestedItems = EquipmentRegistry.Find(Tag);
+	FNestedActors* NestedItems = EquipmentRegistry.Find(Group);
 	if (NestedItems == nullptr)
 	{
 		return false;
@@ -260,10 +286,11 @@ bool UJuicyEquipmentManager::UnregisterItemByTag_Implementation(const int32 Inde
 	return true;
 }
 
-bool UJuicyEquipmentManager::EquipItemFromRegistryInSlot_Implementation(const FName Slot, AActor* Item,
-                                                                        AActor*& OutPreviousItem, AActor*& OutNewItem)
+bool UJuicyEquipmentManager::EquipItemFromRegistryInSlot_Implementation(
+	const FName Slot, AActor* const Item, const FGameplayTagContainer GroupLabels,
+	AActor*& OutPreviousItem, AActor*& OutNewItem)
 {
-	if (!IsItemRegistered(Item))
+	if (!IsItemRegistered(Item, GroupLabels))
 	{
 		return false;
 	}
@@ -271,13 +298,12 @@ bool UJuicyEquipmentManager::EquipItemFromRegistryInSlot_Implementation(const FN
 	return Super::EquipItemInSlot(Slot, Item, OutPreviousItem, OutNewItem);
 }
 
-bool UJuicyEquipmentManager::EquipItemFromRegistryInSlotByTag_Implementation(const FName Slot,
-                                                                             const int32 Index, const FGameplayTag Tag,
-                                                                             AActor*& OutPreviousItem,
-                                                                             AActor*& OutNewItem)
+bool UJuicyEquipmentManager::EquipItemOfGroupFromRegistryInSlot_Implementation(
+	const FName Slot, const FJuicyEquipmentRegistryGroup Group, const int32 Index,
+	AActor*& OutPreviousItem, AActor*& OutNewItem)
 {
 	AActor* Item;
-	if (!GetItemFromRegistryByTag(Index, Tag, Item))
+	if (!GetItemOfGroupFromRegistry(Group, Index, Item))
 	{
 		return false;
 	}

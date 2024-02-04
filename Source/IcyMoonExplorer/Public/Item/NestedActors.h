@@ -11,6 +11,7 @@ struct ICYMOONEXPLORER_API FNestedActors
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<AActor*> Actors;
 
-	FNestedActors();
+	explicit FNestedActors(const TArray<AActor*>& Actors = {});
+
 	virtual ~FNestedActors();
 };

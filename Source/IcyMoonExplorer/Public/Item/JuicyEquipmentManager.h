@@ -1,8 +1,10 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "NestedActors.h"
 #include "Components/AGR_EquipmentManager.h"
+#include "JuicyEquipmentRegistryGroup.h"
+#include "NestedActors.h"
+
 #include "JuicyEquipmentManager.generated.h"
 
 UCLASS(ClassGroup=("AGR"), meta=(BlueprintSpawnableComponent))
@@ -11,7 +13,13 @@ class ICYMOONEXPLORER_API UJuicyEquipmentManager : public UAGR_EquipmentManager
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(Category="AGR|Game Play", EditAnywhere, BlueprintReadWrite)
+	TMap<FJuicyEquipmentRegistryGroup, FNestedActors> EquipmentRegistry;
+
 	UJuicyEquipmentManager();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR")
+	TMap<FJuicyEquipmentRegistryGroup, FNestedActors> GetEquipmentRegistry() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR")
 	UPARAM(DisplayName="Has Items") bool
@@ -20,15 +28,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR")
 	UPARAM(DisplayName="Has Items") bool
-	GetAllItemsFromRegistryByTag(
-		FGameplayTag Tag,
+	GetAllItemsOfGroupFromRegistry(
+		FJuicyEquipmentRegistryGroup Group,
 		UPARAM(DisplayName="Items") TArray<AActor*>& OutItems) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR")
 	UPARAM(DisplayName="Has Item") bool
-	GetItemFromRegistryByTag(
+	GetItemOfGroupFromRegistry(
+		FJuicyEquipmentRegistryGroup Group,
 		int32 Index,
-		FGameplayTag Tag,
 		UPARAM(DisplayName="Item") AActor*& OutItem) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR")
@@ -39,65 +47,76 @@ public:
 	UPARAM(DisplayName="Found") bool
 	FindItemInRegistry(
 		AActor* Item,
-		UPARAM(DisplayName="Index") int32& OutIndex,
-		UPARAM(DisplayName="Tag") FGameplayTag& OutTag) const;
+		FGameplayTagContainer GroupLabels,
+		UPARAM(DisplayName="Group") FJuicyEquipmentRegistryGroup& OutGroup,
+		UPARAM(DisplayName="Index") int32& OutIndex) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR",
 		meta=(KeyWords="contains"))
 	UPARAM(DisplayName="Contains") bool
-	IsItemRegistered(AActor* Item) const;
+	IsItemRegistered(
+		AActor* Item,
+		FGameplayTagContainer GroupLabels) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintNativeEvent, Category="AGR",
 		meta=(KeyWords="contains"))
 	UPARAM(DisplayName="Contains") bool
-	IsItemRegisteredByTag(int32 Index, FGameplayTag Tag) const;
+	IsItemOfGroupRegistered(
+		FJuicyEquipmentRegistryGroup Group,
+		int32 Index) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR")
+	void SetupDefineRegistry(
+		const TMap<FJuicyEquipmentRegistryGroup, FNestedActors>& Registry);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR",
 		meta=(KeyWords="add"))
 	UPARAM(DisplayName="Success") bool
 	RegisterItem(
 		AActor* Item,
-		UPARAM(DisplayName="Index") int32& OutIndex,
-		UPARAM(DisplayName="Tag") FGameplayTag& OutTag);
+		FGameplayTagContainer GroupLabels,
+		UPARAM(DisplayName="Group") FJuicyEquipmentRegistryGroup& OutGroup,
+		UPARAM(DisplayName="Index") int32& OutIndex);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR",
 		meta=(KeyWords="insert"))
 	UPARAM(DisplayName="Success") bool
 	RegisterItemByIndex(
 		AActor* Item,
+		FGameplayTagContainer GroupLabels,
 		int32 Index,
-		UPARAM(DisplayName="Tag") FGameplayTag& OutTag);
+		UPARAM(DisplayName="Group") FJuicyEquipmentRegistryGroup& OutGroup);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR",
 		meta=(KeyWords="remove"))
 	UPARAM(DisplayName="Success") bool
 	UnregisterItem(
 		AActor* Item,
-		UPARAM(DisplayName="Tag") FGameplayTag& OutTag);
+		FGameplayTagContainer GroupLabels,
+		UPARAM(DisplayName="Group") FJuicyEquipmentRegistryGroup& OutGroup);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR",
 		meta=(KeyWords="remove at"))
 	UPARAM(DisplayName="Success") bool
-	UnregisterItemByTag(
-		int32 Index,
-		FGameplayTag Tag);
+	UnregisterItemOfGroup(
+		FJuicyEquipmentRegistryGroup Group,
+		int32 Index);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR")
-	UPARAM(DisplayName = "Success") bool EquipItemFromRegistryInSlot(
+	UPARAM(DisplayName = "Success") bool
+	EquipItemFromRegistryInSlot(
 		const FName Slot,
 		AActor* Item,
+		FGameplayTagContainer GroupLabels,
 		UPARAM(DisplayName = "PreviousItem") AActor*& OutPreviousItem,
 		UPARAM(DisplayName = "NewItem") AActor*& OutNewItem);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, BlueprintAuthorityOnly, Category="AGR")
-	UPARAM(DisplayName = "Success") bool EquipItemFromRegistryInSlotByTag(
+	UPARAM(DisplayName = "Success") bool
+	EquipItemOfGroupFromRegistryInSlot(
 		const FName Slot,
+		FJuicyEquipmentRegistryGroup Group,
 		int32 Index,
-		FGameplayTag Tag,
 		UPARAM(DisplayName = "PreviousItem") AActor*& OutPreviousItem,
 		UPARAM(DisplayName = "NewItem") AActor*& OutNewItem);
-
-protected:
-	UPROPERTY(Category="AGR|Game Play", EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, FNestedActors> EquipmentRegistry;
 };
