@@ -172,38 +172,85 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	AJuicyCharacter* GetJuicyCharacterOwner() const;
 
+	/* MOVEMENT MODE */
+
 	virtual void SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode = 0) override;
 	virtual void SetMovementMode(EJuicyCharacterMovementMode NewMovementMode);
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual bool IsMovementMode(EMovementMode IsMovementMode, uint8 IsCustomMode = 0) const;
+
 	virtual bool IsMovementMode(EJuicyCharacterMovementMode IsMovementMode) const;
+
+	/* SLIDING */
 
 	virtual void Slide();
 	virtual void UnSlide();
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Sliding")
 	virtual bool IsSliding() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Sliding")
 	virtual bool CanSlideInCurrentState() const;
+
+	/* DASHING */
 
 	virtual void Dash();
 	virtual void UnDash();
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Dashing")
 	virtual bool IsDashing() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Dashing")
 	virtual bool IsDashingCooldown() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Dashing")
 	virtual bool CanDashInCurrentState() const;
+
+	/* MANTLING */
 
 	virtual void Mantle();
 	virtual void UnMantle();
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Mantling")
 	virtual bool IsMantling() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Mantling")
 	virtual bool CanMantleInCurrentState() const;
+
 	virtual void ExitMantling();
 
+	/* WALL RUN */
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Run")
 	virtual bool IsWallRunning() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Run")
 	virtual bool IsWallRunningCooldown() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Run")
 	virtual bool CanWallRunInCurrentState() const;
 
+	/* WALL HANG */
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Hang")
 	virtual bool IsWallHanging() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Hang")
 	virtual bool IsWallHangingCooldown() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Hang")
 	virtual bool CanWallHangInCurrentState() const;
 
+	/* WALL RUN / WALL HANG */
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Run / Wall Hang")
 	virtual bool IsOnWall() const;
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement|Wall Run / Wall Hang")
 	virtual FVector GetWallNormal() const;
+
+	/* OVERRIDDEN METHODS */
 
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual float GetGravityZ() const override;
