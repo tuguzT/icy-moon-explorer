@@ -53,5 +53,8 @@ Session.vim
 # Visual Studio
 .vs
 
+# Visual Studio Code
+.vscode
+
 # JetBrains IDEs
 .idea
