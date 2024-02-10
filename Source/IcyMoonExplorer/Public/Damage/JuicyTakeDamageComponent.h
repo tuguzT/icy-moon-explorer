@@ -28,6 +28,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTakenSignature,
                                             float, DamageTaken);
 
 UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthRestoredSignature,
+                                            float, HealthRestored);
+
+UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartTakeDamageCooldownSignature);
 
 UDELEGATE(BlueprintCallable)
@@ -56,6 +60,9 @@ public:
 
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnDamageTakenSignature OnDamageTaken;
+
+	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
+	FOnHealthRestoredSignature OnHealthRestored;
 
 	UPROPERTY(Category="Components|Take Damage", BlueprintAssignable)
 	FOnStartTakeDamageCooldownSignature OnStartTakeDamageCooldown;
@@ -88,6 +95,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	bool CanTakeDamage() const;
+
+	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
+	bool CanRestoreHealth() const;
 
 	UFUNCTION(BlueprintPure, Category="Components|Take Damage")
 	bool IsTakeDamageCooldown() const;

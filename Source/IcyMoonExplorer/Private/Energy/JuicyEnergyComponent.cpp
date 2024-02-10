@@ -27,7 +27,7 @@ void UJuicyEnergyComponent::TickComponent(const float DeltaTime, const ELevelTic
 
 		if (Energy != OldEnergy && IsFullEnergy())
 		{
-			OnEnergyRestored.Broadcast();
+			OnEnergyRenewed.Broadcast();
 		}
 	}
 }
@@ -41,17 +41,24 @@ void UJuicyEnergyComponent::SetEnergy(const float NewEnergy)
 {
 	const float OldEnergy = Energy;
 	SetEnergyRaw(NewEnergy);
-	if (OldEnergy == Energy)
+	if (const float EnergyUsed = OldEnergy - Energy;
+		EnergyUsed > 0.0f)
+	{
+		OnEnergyUsed.Broadcast(EnergyUsed);
+	}
+	else if (EnergyUsed < 0.0f)
+	{
+		const float EnergyRestored = -EnergyUsed;
+		OnEnergyRestored.Broadcast(EnergyRestored);
+	}
+	else
 	{
 		return;
 	}
 
-	const float EnergyUsed = OldEnergy - Energy;
-	OnEnergyUsed.Broadcast(EnergyUsed);
-
 	if (HasEnergy() && IsFullEnergy())
 	{
-		OnEnergyRestored.Broadcast();
+		OnEnergyRenewed.Broadcast();
 	}
 	if (!HasEnergy())
 	{

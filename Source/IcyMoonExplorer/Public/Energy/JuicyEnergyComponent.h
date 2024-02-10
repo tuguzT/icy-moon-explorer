@@ -9,10 +9,14 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnergyUsedSignature,
                                             float, EnergyUsed);
 
 UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnergyRestoredSignature,
+                                            float, EnergyRestored);
+
+UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnergyDepletedSignature);
 
 UDELEGATE(BlueprintCallable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnergyRestoredSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnergyRenewedSignature);
 
 UCLASS(Blueprintable, ClassGroup=(Energy), meta=(BlueprintSpawnableComponent))
 class ICYMOONEXPLORER_API UJuicyEnergyComponent : public UActorComponent
@@ -24,10 +28,13 @@ public:
 	FOnEnergyUsedSignature OnEnergyUsed;
 
 	UPROPERTY(Category="Components|Energy", BlueprintAssignable)
+	FOnEnergyRestoredSignature OnEnergyRestored;
+
+	UPROPERTY(Category="Components|Energy", BlueprintAssignable)
 	FOnEnergyDepletedSignature OnEnergyDepleted;
 
 	UPROPERTY(Category="Components|Energy", BlueprintAssignable)
-	FOnEnergyRestoredSignature OnEnergyRestored;
+	FOnEnergyRenewedSignature OnEnergyRenewed;
 
 	explicit UJuicyEnergyComponent(
 		const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

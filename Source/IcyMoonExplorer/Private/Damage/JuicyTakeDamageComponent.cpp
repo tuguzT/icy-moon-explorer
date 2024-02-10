@@ -35,21 +35,30 @@ float UJuicyTakeDamageComponent::GetHealth() const
 
 void UJuicyTakeDamageComponent::SetHealth(const float NewHealth)
 {
-	if (!CanTakeDamage())
+	const bool bCanTakeDamage = NewHealth < Health && CanTakeDamage();
+	const bool bCanRestoreHealth = NewHealth > Health && CanRestoreHealth();
+	if (!bCanTakeDamage && !bCanRestoreHealth)
 	{
 		return;
 	}
 
 	const float OldHealth = Health;
 	SetHealthRaw(NewHealth);
-	if (OldHealth == Health)
+	if (const float DamageTaken = OldHealth - Health;
+		DamageTaken > 0.0f)
+	{
+		OnDamageTaken.Broadcast(DamageTaken);
+		StartTakeDamageCooldown();
+	}
+	else if (DamageTaken < 0.0f)
+	{
+		const float HealthRestored = -DamageTaken;
+		OnHealthRestored.Broadcast(HealthRestored);
+	}
+	else
 	{
 		return;
 	}
-
-	const float DamageTaken = OldHealth - Health;
-	OnDamageTaken.Broadcast(DamageTaken);
-	StartTakeDamageCooldown();
 
 	if (IsDead())
 	{
@@ -83,6 +92,11 @@ void UJuicyTakeDamageComponent::SetMaxHealth(const float NewMaxHealth)
 bool UJuicyTakeDamageComponent::CanTakeDamage() const
 {
 	return !IsDead() && !IsTakeDamageCooldown();
+}
+
+bool UJuicyTakeDamageComponent::CanRestoreHealth() const
+{
+	return !IsDead();
 }
 
 bool UJuicyTakeDamageComponent::IsTakeDamageCooldown() const
