@@ -58,3 +58,6 @@ Session.vim
 
 # JetBrains IDEs
 .idea
+
+# WakaTimeForUE plugin
+/Plugins/WakaTimeForUE
