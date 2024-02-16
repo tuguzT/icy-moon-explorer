@@ -21,14 +21,8 @@ void UJuicyEnergyComponent::TickComponent(const float DeltaTime, const ELevelTic
 
 	if (bCanEverRecoverEnergy)
 	{
-		const float OldEnergy = Energy;
 		const float NewEnergy = Energy + DeltaTime * EnergyRecoverySpeed;
-		SetEnergyRaw(NewEnergy);
-
-		if (Energy != OldEnergy && IsFullEnergy())
-		{
-			OnEnergyRenewed.Broadcast();
-		}
+		SetEnergy(NewEnergy);
 	}
 }
 
