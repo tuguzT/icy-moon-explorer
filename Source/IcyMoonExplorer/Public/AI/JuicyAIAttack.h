@@ -22,6 +22,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="AI|Attack")
 	void Attack(AActor* ActorToAttack);
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="AI|Attack")
+	bool IsAttacking() const;
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="AI|Attack", DisplayName="Bind Event to On Attack End")
 	void BindEventToOnAttackEnd(const FOnAttackEndSignature& Event);
 };
